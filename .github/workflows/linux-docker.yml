@@ -1,0 +1,20 @@
+name: Linux Docker smoke test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the app
+        run: docker compose up --build --detach
+      - name: Check HTTP health and page
+        run: |
+          curl --retry 20 --retry-delay 2 --retry-connrefused --fail --silent --show-error http://127.0.0.1:8205/healthz
+          curl --fail --silent --show-error http://127.0.0.1:8205/ | grep -q '<div id="root"></div>'
+      - name: Stop containers
+        if: always()
+        run: docker compose down

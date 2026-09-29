@@ -1,0 +1,467 @@
+[
+  {
+    "id": 0,
+    "cost": 2,
+    "time": 1,
+    "income": 0,
+    "cells": [
+      [0, 0],
+      [1, 0]
+    ],
+    "name": "Grey_1x2"
+  },
+  {
+    "id": 1,
+    "cost": 1,
+    "time": 5,
+    "income": 1,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [0, 4],
+      [1, 4]
+    ],
+    "name": "Blue_C"
+  },
+  {
+    "id": 2,
+    "cost": 3,
+    "time": 2,
+    "income": 1,
+    "cells": [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [0, 2]
+    ],
+    "name": "Yellow_L_stair"
+  },
+  {
+    "id": 3,
+    "cost": 1,
+    "time": 2,
+    "income": 0,
+    "cells": [
+      [0, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1]
+    ],
+    "name": "DarkBlue_U"
+  },
+  {
+    "id": 4,
+    "cost": 2,
+    "time": 3,
+    "income": 0,
+    "cells": [
+      [0, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [0, 2],
+      [2, 2]
+    ],
+    "name": "LightBlue_H"
+  },
+  {
+    "id": 5,
+    "cost": 2,
+    "time": 2,
+    "income": 0,
+    "cells": [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [1, 2]
+    ],
+    "name": "Purple_Cross"
+  },
+  {
+    "id": 6,
+    "cost": 2,
+    "time": 2,
+    "income": 0,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [2, 0]
+    ],
+    "name": "BlueFlower_1x3"
+  },
+  {
+    "id": 7,
+    "cost": 3,
+    "time": 1,
+    "income": 0,
+    "cells": [
+      [0, 0],
+      [0, 1],
+      [1, 1]
+    ],
+    "name": "Pink_L_small"
+  },
+  {
+    "id": 8,
+    "cost": 6,
+    "time": 5,
+    "income": 2,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [1, 1]
+    ],
+    "name": "Orange_Square"
+  },
+  {
+    "id": 9,
+    "cost": 3,
+    "time": 4,
+    "income": 1,
+    "cells": [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1]
+    ],
+    "name": "Light_T_short"
+  },
+  {
+    "id": 10,
+    "cost": 7,
+    "time": 2,
+    "income": 2,
+    "cells": [
+      [1, 0],
+      [1, 1],
+      [1, 2],
+      [0, 3],
+      [1, 3],
+      [2, 3]
+    ],
+    "name": "Green_Long_L"
+  },
+  {
+    "id": 11,
+    "cost": 10,
+    "time": 3,
+    "income": 2,
+    "cells": [
+      [1, 0],
+      [1, 1],
+      [1, 2],
+      [0, 3],
+      [1, 3]
+    ],
+    "name": "Yellow_L_long"
+  },
+  {
+    "id": 12,
+    "cost": 7,
+    "time": 4,
+    "income": 2,
+    "cells": [
+      [1, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1]
+    ],
+    "name": "White_Broad_T"
+  },
+  {
+    "id": 13,
+    "cost": 1,
+    "time": 4,
+    "income": 1,
+    "cells": [
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [4, 1],
+      [2, 2]
+    ],
+    "name": "DarkGreen_Cross_Long"
+  },
+  {
+    "id": 14,
+    "cost": 0,
+    "time": 3,
+    "income": 1,
+    "cells": [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [1, 2]
+    ],
+    "name": "Grey_Big_Cross"
+  },
+  {
+    "id": 15,
+    "cost": 10,
+    "time": 5,
+    "income": 3,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [0, 1],
+      [1, 1]
+    ],
+    "name": "Red_Hook_5"
+  },
+  {
+    "id": 16,
+    "cost": 8,
+    "time": 6,
+    "income": 3,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [1, 2],
+      [2, 2]
+    ],
+    "name": "Blue_Steps"
+  },
+  {
+    "id": 17,
+    "cost": 5,
+    "time": 3,
+    "income": 1,
+    "cells": [
+      [1, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [1, 2],
+      [2, 2]
+    ],
+    "name": "Red_Complex_Cross"
+  },
+  {
+    "id": 18,
+    "cost": 4,
+    "time": 2,
+    "income": 0,
+    "cells": [
+      [0, 0],
+      [0, 1],
+      [1, 1],
+      [0, 2],
+      [1, 2],
+      [1, 3]
+    ],
+    "name": "Ginger_Steps"
+  },
+  {
+    "id": 19,
+    "cost": 3,
+    "time": 6,
+    "income": 2,
+    "cells": [
+      [1, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [1, 2],
+      [2, 2]
+    ],
+    "name": "Blue_Wave_H"
+  },
+  {
+    "id": 20,
+    "cost": 7,
+    "time": 1,
+    "income": 1,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [4, 0]
+    ],
+    "name": "Slim_1x5"
+  },
+  {
+    "id": 21,
+    "cost": 4,
+    "time": 6,
+    "income": 2,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [1, 2]
+    ],
+    "name": "Brown_L_Offset"
+  },
+  {
+    "id": 22,
+    "cost": 3,
+    "time": 3,
+    "income": 1,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0]
+    ],
+    "name": "Yellow_1x4"
+  },
+  {
+    "id": 23,
+    "cost": 5,
+    "time": 4,
+    "income": 2,
+    "cells": [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [1, 2]
+    ],
+    "name": "Pink_Small_Cross"
+  },
+  {
+    "id": 24,
+    "cost": 7,
+    "time": 6,
+    "income": 3,
+    "cells": [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [0, 2]
+    ],
+    "name": "Red_L_Stair"
+  },
+  {
+    "id": 25,
+    "cost": 2,
+    "time": 1,
+    "income": 0,
+    "cells": [
+      [1, 0],
+      [1, 1],
+      [2, 1],
+      [0, 2],
+      [1, 2],
+      [1, 3]
+    ],
+    "name": "Red_L_Stair"
+  },
+  {
+    "id": 26,
+    "cost": 4,
+    "time": 2,
+    "income": 1,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [0, 2]
+    ],
+    "name": "Red_L_Stair"
+  },
+  {
+    "id": 27,
+    "cost": 2,
+    "time": 3,
+    "income": 1,
+    "cells": [
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [0, 1],
+      [1, 1]
+    ],
+    "name": "Light_Green_Z"
+  },
+  {
+    "id": 28,
+    "cost": 10,
+    "time": 4,
+    "income": 3,
+    "cells": [
+      [2, 0],
+      [1, 1],
+      [2, 1],
+      [0, 2],
+      [1, 2]
+    ],
+    "name": "Blue_Stairs"
+  },
+  {
+    "id": 29,
+    "cost": 2,
+    "time": 2,
+    "income": 0,
+    "cells": [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [0, 2],
+      [1, 2]
+    ],
+    "name": "Orange_L"
+  },
+  {
+    "id": 30,
+    "cost": 1,
+    "time": 3,
+    "income": 0,
+    "cells": [
+      [0, 0],
+      [1, 0],
+      [1, 1]
+    ],
+    "name": "Floral_L"
+  },
+  {
+    "id": 31,
+    "cost": 5,
+    "time": 5,
+    "income": 2,
+    "cells": [
+      [1, 0],
+      [1, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2]
+    ],
+    "name": "Green_Cross"
+  },
+  {
+    "id": 32,
+    "cost": 1,
+    "time": 2,
+    "income": 0,
+    "cells": [
+      [3, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [0, 2]
+    ],
+    "name": "Cyan_Long_Z"
+  }
+]

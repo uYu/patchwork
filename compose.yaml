@@ -1,0 +1,6 @@
+services:
+  patchwork:
+    build: .
+    ports:
+      - "${PATCHWORK_PORT:-8205}:8080"
+    restart: unless-stopped
