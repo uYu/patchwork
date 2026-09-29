@@ -452,7 +452,8 @@ export default function App() {
               <div className="inline-action-status" role="status">
                 {animation ? <><strong>{name(animation.actor)} · {animation.action.type === "advance" ? "前进赚纽扣" : phase?.landed ? "拼布已落下 · 时间棋子前进" : "正在放置拼布"}</strong><button className="text-btn" onClick={() => setAnimation(null)}>跳过动画</button></> : <span>{human ? state.pending ? "小补丁待放：点击棋盘空格" : advanceSelected ? "已选择前进：在棋盘下方确认" : "点击外圈绿框拼布选购，再在棋盘上定位" : save.mode === "ai" ? "小织正在思考，请稍候" : "双方自动落子中"}</span>}
               </div>
-              {human && (state.pending ? <div className="action-choice guided leather-choice" aria-label="小补丁行动">
+              <div className="action-slot">
+              {human ? (state.pending ? <div className="action-choice guided leather-choice" aria-label="小补丁行动">
                 <strong>先缝小补丁 · 剩余 {state.pending} 块</strong>
                 <small>免费填 1 格，不消耗时间。点击棋盘空格选位置，再按“确认缝上小补丁”。</small>
               </div> : <div className="action-choice guided" aria-label="本回合行动">
@@ -464,9 +465,11 @@ export default function App() {
                     onClick={() => {setAdvanceSelected(true);setAnchor(null);setHover(null);}}><b>前进赚纽扣</b><span>前进 {advanceSteps} 格，立即获得 {advanceSteps} 枚纽扣；跨过收入标记还会结算收入。</span></button>
                 </div>
                 <small>{advanceSelected ? `已选前进：将获得 ${advanceSteps} 枚纽扣。按棋盘下方的按钮确认。` : piece !== null ? `已选 ${piece + 1} 号拼布：花费 ${PATCHES[piece].cost} 纽扣，前进 ${PATCHES[piece].time} 格，收入 +${PATCHES[piece].income}。点击棋盘选位置。` : "先点击外圈绿框的可买拼布，再在棋盘选落点。"}</small>
-              </div>)}
-
-            {!human && <div className="action-choice-space" aria-hidden="true" />}
+              </div>) : <div className="action-choice guided action-choice-wait" aria-hidden="true">
+                <strong>{animation ? "正在完成这一步" : isReplay ? "正在回放" : state.over ? "本局已结束" : save.mode === "watch" ? watchPaused ? "观战已暂停" : "AI 对弈中" : "小织正在思考"}</strong>
+                <small>行动完成后，这里会显示下一步可选的操作。</small>
+              </div>}
+              </div>
             <div className="board-row">
             <section className="your-side">
 
@@ -499,7 +502,7 @@ export default function App() {
                     </div>
                     <div className={`board-wrap player-color-${i}`}>
                       <div
-                        className={`board-surface ${human ? "has-placement-tools" : ""}`}
+                        className="board-surface has-placement-tools"
                       >
                         <Board
                           key={i}

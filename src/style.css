@@ -2577,7 +2577,7 @@ dialog.action-animation.leaving { animation:action-stage-out 200ms ease-in both;
 .board-row .opponent-body { margin-top:0; }
 
 /* The entire market surrounds the shared table; animation uses the same boards. */
-.table-market-info { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center; min-height:42px; padding:8px 10px; background:#fff3d6; border-radius:8px; font-size:12px; }
+.table-market-info { box-sizing:border-box; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center; height:42px; overflow:hidden; padding:8px 10px; background:#fff3d6; border-radius:8px; font-size:12px; }
 .table-market-info small { font-size:10px; }
 .table-ring-scroll { overflow-x:auto; }
 .table-ring { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); grid-template-rows:76px repeat(5,minmax(72px,auto)) 76px; gap:5px; padding:6px; min-width:820px; }
@@ -2607,7 +2607,6 @@ dialog.action-animation.leaving { animation:action-stage-out 200ms ease-in both;
  .table-ring-center .board-row > .side-column,.table-ring-center .board-row > .rival-column { grid-row:auto; grid-column:auto; width:auto; }
 }
 
-.table-ring-center .action-choice-space { height:41px; }
 .table-ring-center .board-surface { padding-bottom:62px; }
 .table-ring-center .track-heading { order:-10; }
 .table-ring { position:relative; }
@@ -2618,11 +2617,11 @@ dialog.action-animation.leaving { animation:action-stage-out 200ms ease-in both;
 .table-ring-center .opponent-stats { display:flex; flex-direction:row; align-items:center; }
 
 /* Keep the current turn and both action choices readable at a glance. */
-.turn-guide { position:sticky; top:8px; z-index:30; display:flex; align-items:center; gap:12px; margin:12px 0; padding:12px 16px; border:2px solid #3d806b; border-radius:10px; background:#e8f3e7; color:#244f43; box-shadow:0 3px 12px #183d3420; }
+.turn-guide { position:sticky; top:8px; z-index:30; box-sizing:border-box; height:70px; display:flex; align-items:center; gap:12px; margin:12px 0; padding:10px 16px; border:2px solid #3d806b; border-radius:10px; background:#e8f3e7; color:#244f43; box-shadow:0 3px 12px #183d3420; }
 .turn-guide-mark { display:grid; place-items:center; flex:none; width:34px; height:34px; border-radius:50%; background:#336d5a; color:white; font-size:21px; font-weight:700; }
 .turn-guide > div { display:flex; flex-direction:column; gap:3px; }
 .turn-guide strong { font-size:16px; }
-.turn-guide span:not(.turn-guide-mark) { font-size:12px; line-height:1.5; }
+.turn-guide span:not(.turn-guide-mark) { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; font-size:12px; line-height:1.5; }
 .turn-guide-thinking { border-color:#b99b5a; background:#fff4d9; color:#654718; }
 .turn-guide-thinking .turn-guide-mark { background:#a77b2d; animation:thinking-pulse 1.3s ease-in-out infinite; }
 .turn-guide-leather { border-color:#a96835; background:#fff0da; color:#704318; }
@@ -2630,6 +2629,8 @@ dialog.action-animation.leaving { animation:action-stage-out 200ms ease-in both;
 .turn-guide-animation { border-color:#ab9b7c; background:#f4eee1; color:#554a36; }
 .turn-guide-animation .turn-guide-mark { background:#88795c; }
 @keyframes thinking-pulse { 50% { opacity:.55; transform:scale(.9); } }
+.action-slot { box-sizing:border-box; height:132px; margin-bottom:6px; overflow:hidden; }
+.action-slot > .action-choice.guided { box-sizing:border-box; height:100%; margin:0; }
 .action-choice.guided { display:flex; flex-direction:column; align-items:stretch; gap:5px; padding:8px; }
 .action-choice.guided > strong { font-size:12px; }
 .action-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
@@ -2638,7 +2639,16 @@ dialog.action-animation.leaving { animation:action-stage-out 200ms ease-in both;
 .action-choice.guided .action-options button span { font-size:10px; line-height:1.35; }
 .action-choice.guided > small { min-width:0; flex:none; font-size:10px; line-height:1.45; }
 .action-choice.leather-choice { border-color:#bd8856; background:#fff0db; }
-@media(max-width:760px) { .turn-guide { padding:10px; } .turn-guide strong { font-size:14px; } .action-options { grid-template-columns:1fr; } }
+.action-choice-wait { justify-content:center; }
+.inline-action-status { box-sizing:border-box; height:32px; min-height:32px; overflow:hidden; white-space:nowrap; }
+.inline-action-status > span,.inline-action-status > strong { overflow:hidden; text-overflow:ellipsis; }
+.placement-bar { box-sizing:border-box; height:84px; min-height:84px; overflow:hidden; }
+.placement-bar strong,.placement-bar small { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+.bonus-notice { position:fixed; right:16px; bottom:16px; z-index:50; box-sizing:border-box; max-width:min(320px,calc(100vw - 32px)); margin:0; padding:10px 14px; pointer-events:none; box-shadow:0 8px 26px #3c281b55; animation:bonus-peek 7s ease both; }
+.bonus-notice strong { font-size:13px; }
+.bonus-notice span { font-size:11px; }
+@keyframes bonus-peek { 0% { opacity:0; transform:translateY(12px); } 6%,82% { opacity:1; transform:translateY(0); } 100% { opacity:0; visibility:hidden; } }
+@media(max-width:760px) { .turn-guide { height:82px; padding:10px; } .turn-guide strong { font-size:14px; } .table-market-info { height:80px; } .action-options { grid-template-columns:1fr; } .action-slot { height:178px; } }
 @media(prefers-reduced-motion:reduce) { .turn-guide-thinking .turn-guide-mark { animation:none; } }
 
 /* Move player economy beside the log and keep hover details clear of the ring. */
