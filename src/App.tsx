@@ -22,7 +22,7 @@ import {
 import { Board } from "./components/Board.tsx";
 import { Dialog } from "./components/Dialog.tsx";
 import { Rules } from "./components/Rules.tsx";
-import { COLORS, FORMS, flip, rotate } from "./game/data.ts";
+import { COLORS, FORMS, PATCHES, flip, rotate } from "./game/data.ts";
 import { applyAction, isLegal, score, winner } from "./game/engine.ts";
 import { downloadSave, parseSave, replay, SAVE_KEY, MAX_SAVE_BYTES } from "./game/storage.ts";
 import type { Action, AIResult, Difficulty, Mode, Save } from "./game/types.ts";
@@ -233,6 +233,7 @@ export default function App() {
           : undefined;
   const preview = advanceSelected ? undefined : makeAction(anchor ?? hover),
     chosen: Action | undefined = advanceSelected && !state?.pending ? {type: "advance"} : makeAction(anchor);
+  const advanceSteps = state ? Math.max(0, Math.min(53, state.players[1 - state.current].time + 1) - state.players[state.current].time) : 0;
   useEffect(() => { setAdvanceSelected(false); }, [state]);
   const exitReplay = () => {
     setReplayIndex(null);
@@ -423,6 +424,15 @@ export default function App() {
         </main>
       ) : state && save ? (
         <main className="game">
+          {!isReplay && !state.over && save.mode !== "watch" && (
+            <div className={`turn-guide ${animation ? "turn-guide-animation" : human ? state.pending ? "turn-guide-leather" : "turn-guide-human" : "turn-guide-thinking"}`} role="status" aria-live="polite" aria-atomic="true">
+              <span className="turn-guide-mark" aria-hidden="true">{animation ? "✦" : human ? state.pending ? "✚" : "✓" : "◌"}</span>
+              <div>
+                <strong>{animation ? `${name(animation.actor)}正在完成行动` : human ? state.pending ? `轮到${name(state.current)}缝小补丁` : `轮到${name(state.current)}了` : aiError ? "小织暂时无法落子" : "小织正在思考…"}</strong>
+                <span>{animation ? "本步结束后会提示下一位行动者。" : human ? state.pending ? `免费 1 × 1 小补丁，还有 ${state.pending} 块待缝；请点击棋盘空格，再确认。` : "请选择缝拼布或前进赚纽扣，完成后点击确认。" : aiError ? "请使用下方的“切换入门 AI 继续”。" : "请稍候，落子完成后会提醒你行动。"}</span>
+              </div>
+            </div>
+          )}
           {save.mode === "watch" && !state.over && !isReplay && <div className="watch-controls" role="status">
             <div><strong>AI 对弈进行中</strong><span>{watchPaused ? "已暂停" : thinking ? `${name(state.current)}正在思考…` : "准备下一步…"} · 第 {save.actions.length} 步</span></div>
             <button className="secondary" onClick={() => setWatchPaused(!watchPaused)}>
@@ -440,16 +450,21 @@ export default function App() {
                 setAdvanceSelected(false); setPiece(id); setOrientation(0); setAnchor(null); setHover(null);
               }}>
               <div className="inline-action-status" role="status">
-                {animation ? <><strong>{name(animation.actor)} · {animation.action.type === "advance" ? "前进赚纽扣" : phase?.landed ? "拼布已落下 · 时间棋子前进" : "正在放置拼布"}</strong><button className="text-btn" onClick={() => setAnimation(null)}>跳过动画</button></> : <span>点击外圈绿框拼布选购，再在棋盘上定位</span>}
+                {animation ? <><strong>{name(animation.actor)} · {animation.action.type === "advance" ? "前进赚纽扣" : phase?.landed ? "拼布已落下 · 时间棋子前进" : "正在放置拼布"}</strong><button className="text-btn" onClick={() => setAnimation(null)}>跳过动画</button></> : <span>{human ? state.pending ? "小补丁待放：点击棋盘空格" : advanceSelected ? "已选择前进：在棋盘下方确认" : "点击外圈绿框拼布选购，再在棋盘上定位" : save.mode === "ai" ? "小织正在思考，请稍候" : "双方自动落子中"}</span>}
               </div>
-              {human && <div className="action-choice" aria-label="本回合行动">
-                <strong>本回合行动</strong>
-                <button className={!advanceSelected ? "selected" : ""} aria-pressed={!advanceSelected}
-                  onClick={() => setAdvanceSelected(false)}>缝上拼布</button>
-                <button className={advanceSelected ? "selected" : ""} aria-pressed={advanceSelected}
-                  disabled={state.pending > 0} onClick={() => {setAdvanceSelected(true);setAnchor(null);setHover(null);}}>前进赚纽扣</button>
-                <small>{advanceSelected ? `待提交：前进 ${Math.min(53,state.players[1-state.current].time+1)-state.players[state.current].time} 格，领取相同数量纽扣` : "选布并定位后，提交行动"}</small>
-              </div>}
+              {human && (state.pending ? <div className="action-choice guided leather-choice" aria-label="小补丁行动">
+                <strong>先缝小补丁 · 剩余 {state.pending} 块</strong>
+                <small>免费填 1 格，不消耗时间。点击棋盘空格选位置，再按“确认缝上小补丁”。</small>
+              </div> : <div className="action-choice guided" aria-label="本回合行动">
+                <strong>本回合选一项</strong>
+                <div className="action-options">
+                  <button className={!advanceSelected ? "selected" : ""} aria-pressed={!advanceSelected}
+                    onClick={() => setAdvanceSelected(false)}><b>缝上拼布</b><span>选外圈绿框布料，支付成本并摆到棋盘；之后时间前进。</span></button>
+                  <button className={advanceSelected ? "selected" : ""} aria-pressed={advanceSelected}
+                    onClick={() => {setAdvanceSelected(true);setAnchor(null);setHover(null);}}><b>前进赚纽扣</b><span>前进 {advanceSteps} 格，立即获得 {advanceSteps} 枚纽扣；跨过收入标记还会结算收入。</span></button>
+                </div>
+                <small>{advanceSelected ? `已选前进：将获得 ${advanceSteps} 枚纽扣。按棋盘下方的按钮确认。` : piece !== null ? `已选 ${piece + 1} 号拼布：花费 ${PATCHES[piece].cost} 纽扣，前进 ${PATCHES[piece].time} 格，收入 +${PATCHES[piece].income}。点击棋盘选位置。` : "先点击外圈绿框的可买拼布，再在棋盘选落点。"}</small>
+              </div>)}
 
             {!human && <div className="action-choice-space" aria-hidden="true" />}
             <div className="board-row">
@@ -472,7 +487,7 @@ export default function App() {
                             : isReplay
                               ? "回放中"
                               : human
-                                ? "轮到你了"
+                                ? save.mode === "local" ? `轮到${name(i)}了` : "轮到你了"
                                 : save.mode === "watch"
                                   ? state.current === i ? "正在思考" : "等待落子"
                                 : "等待对手"}
@@ -545,7 +560,7 @@ export default function App() {
                               disabled={!chosen || !isLegal(state, chosen)}
                               onClick={() => chosen && commit(chosen)}
                             >
-                              提交行动
+                              {state.pending ? "确认缝上小补丁" : advanceSelected ? "确认前进赚纽扣" : "确认缝上拼布"}
                             </button>
                           </div>
                         )}
@@ -586,7 +601,7 @@ export default function App() {
                           : advanceSelected
                             ? "前进赚纽扣 · 等待提交"
                           : state.pending
-                            ? `获得皮革补丁！还有 ${state.pending} 块待缝上`
+                            ? `轮到你缝小补丁！还有 ${state.pending} 块待缝上`
                             : piece === null
                               ? "从布料小铺挑选一块拼布"
                               : "旋转、翻转，然后选择落点"}
@@ -595,7 +610,7 @@ export default function App() {
                     {human && advanceSelected
                       ? "按棋盘下方的提交行动后，才会移动时间棋子并领取纽扣。"
                       : human && state.pending
-                      ? "点击空格，再确认放置。"
+                      ? "免费填 1 格，不消耗时间；点击棋盘空格，再按“确认缝上小补丁”。"
                       : human && piece !== null
                         ? chosen && !isLegal(state, chosen)
                           ? "这个位置重叠或越界，请换一个落点。"

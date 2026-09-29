@@ -2617,6 +2617,30 @@ dialog.action-animation.leaving { animation:action-stage-out 200ms ease-in both;
 .table-ring-center .opponent-stats span { flex:0 0 auto; width:auto; margin:0; }
 .table-ring-center .opponent-stats { display:flex; flex-direction:row; align-items:center; }
 
+/* Keep the current turn and both action choices readable at a glance. */
+.turn-guide { position:sticky; top:8px; z-index:30; display:flex; align-items:center; gap:12px; margin:12px 0; padding:12px 16px; border:2px solid #3d806b; border-radius:10px; background:#e8f3e7; color:#244f43; box-shadow:0 3px 12px #183d3420; }
+.turn-guide-mark { display:grid; place-items:center; flex:none; width:34px; height:34px; border-radius:50%; background:#336d5a; color:white; font-size:21px; font-weight:700; }
+.turn-guide > div { display:flex; flex-direction:column; gap:3px; }
+.turn-guide strong { font-size:16px; }
+.turn-guide span:not(.turn-guide-mark) { font-size:12px; line-height:1.5; }
+.turn-guide-thinking { border-color:#b99b5a; background:#fff4d9; color:#654718; }
+.turn-guide-thinking .turn-guide-mark { background:#a77b2d; animation:thinking-pulse 1.3s ease-in-out infinite; }
+.turn-guide-leather { border-color:#a96835; background:#fff0da; color:#704318; }
+.turn-guide-leather .turn-guide-mark { background:#a96835; }
+.turn-guide-animation { border-color:#ab9b7c; background:#f4eee1; color:#554a36; }
+.turn-guide-animation .turn-guide-mark { background:#88795c; }
+@keyframes thinking-pulse { 50% { opacity:.55; transform:scale(.9); } }
+.action-choice.guided { display:flex; flex-direction:column; align-items:stretch; gap:5px; padding:8px; }
+.action-choice.guided > strong { font-size:12px; }
+.action-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.action-choice.guided .action-options button { display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-width:0; padding:8px; text-align:left; }
+.action-choice.guided .action-options button b { font-size:12px; }
+.action-choice.guided .action-options button span { font-size:10px; line-height:1.35; }
+.action-choice.guided > small { min-width:0; flex:none; font-size:10px; line-height:1.45; }
+.action-choice.leather-choice { border-color:#bd8856; background:#fff0db; }
+@media(max-width:760px) { .turn-guide { padding:10px; } .turn-guide strong { font-size:14px; } .action-options { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce) { .turn-guide-thinking .turn-guide-mark { animation:none; } }
+
 /* Move player economy beside the log and keep hover details clear of the ring. */
 .activity-sidebar .match-status { display:flex; flex-direction:column; gap:8px; margin:0; }
 .activity-sidebar .match-status .status-player { display:block; padding:10px; }
