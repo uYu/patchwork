@@ -4,7 +4,7 @@
 #include <cmath>
 namespace contactwide {
 using learned::Features; using learned::features;
-constexpr int channels=learned::channels, encoded=learned::encoded, hidden=64;
+constexpr int channels=learned::channels, encoded=learned::encoded, hidden=36;
 inline float predict(const Features& x) {
     std::array<float,encoded> z{};
     for(int p=0;p<2;p++)for(int r=0;r<9;r++)for(int c=0;c<9;c++)for(int filter=0;filter<channels;filter++) {

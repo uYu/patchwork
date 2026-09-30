@@ -4,12 +4,7 @@ import type { State } from '../game/types.ts';
 import { PATCHES } from '../game/data.ts';
 import { canFitPatch } from '../game/engine.ts';
 import { Patch } from './Patch.tsx';
-
-const perimeter: [number, number][] = [];
-for (let x=1;x<=12;x++) perimeter.push([x,1]);
-for (let y=2;y<=7;y++) perimeter.push([12,y]);
-for (let x=11;x>=1;x--) perimeter.push([x,7]);
-for (let y=6;y>=2;y--) perimeter.push([1,y]);
+import { marketRingPosition } from './marketRing.ts';
 
 export function TableMarket({state,human,piece,flyingPiece,onSelect,children}: {
  state:State; human:boolean; piece:number|null; flyingPiece?:number|null; onSelect:(id:number)=>void; children:ReactNode;
@@ -21,10 +16,7 @@ export function TableMarket({state,human,piece,flyingPiece,onSelect,children}: {
  const fits=useMemo(()=>PATCHES.map(p=>canFitPatch(player.board,p.id)),[player.board]);
  const focus=inspected!==null&&order.includes(inspected)?inspected:piece!==null&&order.includes(piece)?piece:order[0];
  const patch=PATCHES[focus];
- const position=(rank:number)=>{
-   const [gridColumn,gridRow]=perimeter[Math.floor(rank*perimeter.length/(order.length+1))];
-   return {gridColumn,gridRow};
- };
+ const position=(rank:number)=>marketRingPosition(rank,order.length);
  return <section className="table-market" aria-label="环绕三个棋盘的布料市场">
    <div className="table-market-info" aria-live="polite">
      <strong>布料环 · 顺时针 ↻</strong>
@@ -35,7 +27,7 @@ export function TableMarket({state,human,piece,flyingPiece,onSelect,children}: {
      <div className="table-ring-marker" style={position(0)}>♟<span>起点 →</span></div>
      {order.map((id,rank)=><button type="button" key={id} data-piece-id={id} style={position(rank+1)}
        className={`table-ring-patch ${rank<3?'reachable':''} ${piece===id?'selected':''} ${flyingPiece===id?'departing':''}`}
-       aria-label={`环上第 ${rank+1} 块，${id+1} 号拼布，成本 ${PATCHES[id].cost} 纽扣，前进 ${PATCHES[id].time} 步${rank<3?'，购买范围内':'，后续布料'}`}
+       aria-label={`环上第 ${rank+1} 块，${id+1} 号拼布，成本 ${PATCHES[id].cost} 纽扣，前进 ${PATCHES[id].time} 步，收入 +${PATCHES[id].income}${rank<3?'，购买范围内':'，后续布料'}`}
        aria-pressed={focus===id}
        onPointerEnter={e=>{const r=e.currentTarget.getBoundingClientRect();setHovered({id,rank,left:Math.max(8,Math.min(window.innerWidth-250,r.left+r.width/2-120)),top:r.top>=250?r.top-8:r.bottom+8,above:r.top>=250});}}
        onPointerLeave={()=>setHovered(null)}
@@ -44,7 +36,7 @@ export function TableMarket({state,human,piece,flyingPiece,onSelect,children}: {
        onClick={()=>{setInspected(id);if(human&&!state.pending&&rank<3&&fits[id]&&PATCHES[id].cost<=player.buttons)onSelect(id);}}>
        <span>{rank+1} · {rank<3?(!fits[id]?'放不下':PATCHES[id].cost>player.buttons?'不足':'可选'):'→'}</span>
        <Patch id={id} uniformScale />
-       <small>◎{PATCHES[id].cost} · ◷{PATCHES[id].time}</small>
+       <small>◎{PATCHES[id].cost} · ◷{PATCHES[id].time} · +{PATCHES[id].income}</small>
      </button>)}
      <div className="table-ring-center">{children}</div>
    </div></div>

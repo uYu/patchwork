@@ -21,7 +21,10 @@ inline double marketFit(const State& s,int player,Time deadline){if(s.circle.emp
 inline std::vector<Scored> children(const State& s,int me,Time deadline){int unused=0;auto gs=groups(s,me,deadline,false,unused);bool maximize=s.current==me;std::vector<Scored> first,second;for(auto& group:gs){if(group.empty())continue;std::stable_sort(group.begin(),group.end(),[&](auto& a,auto& b){return maximize?a.score>b.score:a.score<b.score;});auto selected=diverse(unique(std::move(group),s.players[s.current].board,deadline,32),2,1);if(!selected.empty())first.push_back(selected[0]);if(selected.size()>1)second.push_back(selected[1]);}std::stable_sort(second.begin(),second.end(),[&](auto& a,auto& b){return maximize?a.score>b.score:a.score<b.score;});for(auto a:second)if(first.size()<6)first.push_back(a);return first;}
 inline double beam(const State& s,int me,int depth,Time deadline){check(deadline);if(s.over)return evaluate(s,me);if(!depth)return evaluate(s,me)+marketFit(s,me,deadline)-marketFit(s,1-me,deadline);bool maximize=s.current==me;double best=maximize?-1e100:1e100;for(const auto& child:children(s,me,deadline)){State next=s;apply(next,child.a);double v=beam(next,me,depth-1,deadline);best=maximize?std::max(best,v):std::min(best,v);}return best;}
 inline std::vector<Action> shortlist(const State& s,Time deadline,int& evals){auto gs=groups(s,s.current,deadline,true,evals);std::vector<Scored> roots,fallback;for(auto& group:gs){if(group.empty())continue;auto ranked=unique(std::move(group),s.players[s.current].board,deadline,64);auto selected=diverse(ranked,12,6);roots.insert(roots.end(),selected.begin(),selected.end());auto basic=diverse(std::move(ranked),9,4);fallback.insert(fallback.end(),basic.begin(),basic.end());}for(int horizon=2;horizon<=3;horizon++){std::array<std::vector<Scored>,35> scored;try{for(auto root:roots){check(deadline);State next=s;apply(next,root.a);root.score=beam(next,s.current,horizon-1,deadline);int group=root.a.type==0?34:root.a.type==2?33:root.a.piece;scored[group].push_back(root);}}catch(const Timeout&){break;}fallback.clear();for(auto& group:scored){if(group.empty())continue;std::stable_sort(group.begin(),group.end(),[](auto& a,auto& b){return a.score>b.score;});auto selected=diverse(group,9,4);fallback.insert(fallback.end(),selected.begin(),selected.end());}}std::stable_sort(fallback.begin(),fallback.end(),[](auto& a,auto& b){return a.score>b.score;});std::vector<Action> out;for(auto& item:fallback)out.push_back(item.a);return out;}
-inline std::vector<Action> rolloutCandidates(const State& s){
+// Keep each successor's evaluation and economy with the action so rollout
+// selection does not apply and evaluate the same successor a second time.
+struct RolloutOption {Action action;double value;int timeAdvance,buttons;};
+inline std::vector<RolloutOption> scoredRolloutCandidates(const State& s){
  struct Placement { Action a; double shape; int missing; };
  std::array<std::vector<Placement>,35> groups;
  std::array<Placement,35> square{};std::array<bool,35> hasSquare{};
@@ -35,22 +38,28 @@ inline std::vector<Action> rolloutCandidates(const State& s){
   selected.insert(at,{a,shape,missing});if(selected.size()>2)selected.pop_back();
   if(bonus&&(!hasSquare[group]||missing<square[group].missing||(missing==square[group].missing&&shape>square[group].shape))){square[group]={a,shape,missing};hasSquare[group]=true;}
  }
- std::vector<std::pair<double,Action>> ranked;
+ std::vector<RolloutOption> ranked;
  for(size_t i=0;i<groups.size();i++){
   auto& selected=groups[i];if(hasSquare[i]&&std::none_of(selected.begin(),selected.end(),[&](const auto& p){return p.a.mask==square[i].a.mask;}))selected.push_back(square[i]);
-  for(const auto& p:selected){State next=s;apply(next,p.a);ranked.push_back({evaluate(next,s.current),p.a});}
+  for(const auto& p:selected){State next=s;apply(next,p.a);const auto& before=s.players[s.current];const auto& after=next.players[s.current];ranked.push_back({p.a,evaluate(next,s.current),after.time-before.time,after.buttons});}
  }
- std::stable_sort(ranked.begin(),ranked.end(),[](const auto& a,const auto& b){return a.first>b.first;});
- std::vector<Action> out;for(const auto& item:ranked)out.push_back(item.second);return out;
+ std::stable_sort(ranked.begin(),ranked.end(),[](const auto& a,const auto& b){return a.value>b.value;});
+ return ranked;
+}
+inline std::vector<Action> rolloutCandidates(const State& s){
+ auto ranked=scoredRolloutCandidates(s);std::vector<Action> out;out.reserve(ranked.size());
+ for(const auto& item:ranked)out.push_back(item.action);return out;
 }
 inline Action rolloutAction(const State& s,int me,std::mt19937& rng,const double* exponents){
- auto actions=rolloutCandidates(s);double base=evaluate(s,me),sign=s.current==me?1.:-1.;
- double best=-1e100;Action chosen=actions.front();
- for(auto a:actions){State next=s;apply(next,a);const auto& before=s.players[s.current];const auto& after=next.players[s.current];
-  int dt=after.time-before.time;double gain=sign*(evaluate(next,me)-base)+1.5*dt;
-  double score=gain/std::pow(std::max(1,dt),exponents[s.current])+.15*std::min(after.buttons,10);
+ auto options=scoredRolloutCandidates(s);double base=evaluate(s,me),sign=s.current==me?1.:-1.;
+ double best=-1e100;Action chosen=options.front().action;
+ for(const auto& option:options){
+  // evaluate() is a zero-sum score; reverse the cached perspective if needed.
+  double nextValue=me==s.current?option.value:-option.value;
+  double gain=sign*(nextValue-base)+1.5*option.timeAdvance;
+  double score=gain/std::pow(std::max(1,option.timeAdvance),exponents[s.current])+.15*std::min(option.buttons,10);
   score+=std::uniform_real_distribution<double>(-.3,.3)(rng);
-  if(score>best){best=score;chosen=a;}}
+  if(score>best){best=score;chosen=option.action;}}
  return chosen;
 }
 inline Result search(const State& s,int milliseconds,uint32_t seed,bool improvedRollout=false){auto start=Clock::now();Time deadline=start+std::chrono::milliseconds(milliseconds/5);std::vector<Action> roots;int evals=0;try{roots=shortlist(s,deadline,evals);}catch(const Timeout&){}if(roots.empty()){Result fallback;roots=modelCandidates(s,fallback,Time::max(),contactwide::value);evals+=fallback.modelEvaluations;}int spent=int(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-start).count());auto result=pw::search(s,std::max(1,milliseconds-spent),1000000000,seed,&roots,candidates,improvedRollout?rolloutAction:nullptr);result.elapsed=int(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-start).count());result.modelEvaluations+=evals;result.modelUsed=evals>0;return result;}

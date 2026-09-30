@@ -1,7 +1,7 @@
 #pragma once
 #include "../engine.hpp"
 namespace learned {
-constexpr int inputs=247, context=85, channels=4, hidden=16, encoded=648+context;
+constexpr int inputs=247, context=85, channels=4, encoded=648+context;
 using Features=std::array<float,inputs>;
 inline Features features(const pw::State& g,int perspective) {
  Features x{};int at=0;

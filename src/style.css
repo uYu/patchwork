@@ -2754,11 +2754,26 @@ dialog.action-animation.leaving { animation:action-stage-out 200ms ease-in both;
 .practice-available .action-options { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .action-choice.guided .practice-open { border-color:#987a39; background:#fff0c8; color:#684b17; }
 .action-choice.guided .practice-open:hover { background:#ffe5a4; }
-dialog.practice-dialog { box-sizing:border-box; width:min(920px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); padding:18px; }
+dialog.practice-dialog { box-sizing:border-box; width:min(1160px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); padding:18px; }
 .practice-dialog .dialog-head { margin-bottom:8px; }
 .practice-dialog .dialog-head h2 { font-size:22px; }
 .practice-intro { margin:0 0 12px; color:#5e654f; font-size:12px; line-height:1.5; }
+.practice-ring-scroll { overflow-x:auto; }
+.practice-ring { position:relative; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); grid-template-rows:58px repeat(5,minmax(95px,auto)) 58px; gap:4px; min-width:940px; padding:5px; }
+.practice-ring::before { content:""; position:absolute; inset:34px; border:2px dashed #b3a27c; border-radius:22px; pointer-events:none; }
+.practice-ring > * { position:relative; }
+.practice-ring-marker,.practice-ring-patch { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-width:0; min-height:0; padding:2px; border:1px solid #b8aa8f; border-radius:7px; background:#f9f3e5; color:#38584f; }
+.practice-ring-marker { background:#3b6558; color:#fff; font-size:20px; }
+.practice-ring-marker span,.practice-ring-patch > span,.practice-ring-patch small { font-size:9px; white-space:nowrap; }
+.practice-ring-patch { align-self:center; height:58px; cursor:pointer; }
+.practice-ring-patch .patch-art { width:100%; height:31px; padding:0; }
+.practice-ring-patch.reachable { border:2px solid #43816a; background:#eef2d9; }
+.practice-ring-patch.selected { background:#ffe6a7; outline:2px solid #a16a18; outline-offset:-3px; }
+.practice-ring-patch:disabled { opacity:.4; cursor:default; }
+.practice-ring-patch:not(:disabled):hover,.practice-ring-patch:focus-visible { z-index:2; box-shadow:0 4px 12px #243a3050; }
+.practice-ring-center { grid-column:2 / 12; grid-row:2 / 7; min-width:0; padding:10px; border:1px solid #b6a98d; border-radius:12px; background:#f7efdeee; }
 .practice-layout { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(0,1fr); gap:16px; align-items:start; }
+.practice-ring-hint { margin:0 0 12px; color:#746d5b; font-size:11px; line-height:1.5; }
 .practice-stage,.practice-tools { min-width:0; }
 .practice-summary,.practice-tool-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; font-size:12px; }
 .practice-summary span,.practice-tool-heading span { color:#746d5b; font-size:10px; }
@@ -2790,7 +2805,5 @@ dialog.practice-dialog { box-sizing:border-box; width:min(920px,calc(100vw - 24p
 .practice-actions button.primary { border-color:#326e5c; background:#326e5c; color:#fff; font-weight:700; }
 @media(max-width:720px) {
  dialog.practice-dialog { padding:12px; }
- .practice-layout { grid-template-columns:1fr; }
- .practice-board.board-wrap { width:min(100%,350px); }
  .practice-gallery { max-height:180px; }
 }

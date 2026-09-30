@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {encode,wasmModule,search} from '../src/game/ai-wasm.ts';
-import {newGame,isLegal} from '../src/game/engine.ts';
+import {newGame,isLegal,legalActions,applyAction} from '../src/game/engine.ts';
 
 test('Wasm exposes finite connected-model scores for both perspectives',async()=>{
  const m=await wasmModule();
@@ -13,6 +13,18 @@ test('Wasm exposes finite connected-model scores for both perspectives',async()=
  s.players[0].buttons+=20;
  m.HEAP32.set(encode(s),m._pw_input()/4);
  assert.notEqual(m._pw_model_score(0),before);
+});
+test('pruned Wasm preserves the original model scores across game states',async()=>{
+ const m=await wasmModule();let s=newGame(55);s.players[0].buttons=100;
+ const expected=[[0.1802283674478531,0.13188961148262024],[0.2296883910894394,0.07307875156402588],[0.2227374166250229,0.11114395409822464]];
+ for(const [index,[one,two]] of expected.entries()){
+  m.HEAP32.set(encode(s),m._pw_input()/4);
+  assert(Math.abs(m._pw_model_score(0)-one)<1e-5);
+  assert(Math.abs(m._pw_model_score(1)-two)<1e-5);
+  if(index===expected.length-1)break;
+  const buy=legalActions(s).find(a=>a.type==='buy');assert(buy);
+  s=applyAction(s,buy);
+ }
 });
 test('model ranks eight root placements per patch and leather, retaining advance',async()=>{
  const m=await wasmModule(),s=newGame(55);s.players[0].buttons=100;
