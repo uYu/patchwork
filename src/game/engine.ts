@@ -1,6 +1,6 @@
 import { END, FORMS, INCOME, LEATHER, PATCHES, random } from "./data.ts";
 import type { Action, Cell, Player, State } from "./types.ts";
-export function newGame(seed: number): State {
+export function newGame(seed: number, firstPlayer: 0 | 1 = 0): State {
   const rng = random(seed),
     circle = PATCHES.map((p) => p.id);
   for (let i = circle.length - 1; i > 0; i--) {
@@ -18,7 +18,7 @@ export function newGame(seed: number): State {
     players: [player(), player()],
     circle,
     token: (circle.indexOf(0) + 1) % circle.length,
-    current: 0,
+    current: firstPlayer,
     pending: 0,
     claimed: LEATHER.map(() => false),
     bonusOwner: null,

@@ -3,7 +3,7 @@ import type { Save, AIResult } from "./types.ts";
 export const MAX_SAVE_BYTES = 2_000_000;
 export const SAVE_KEY = "patchwork.save.v1";
 export function replay(save: Save, end = save.actions.length) {
-  return save.actions.slice(0, end).reduce(applyAction, newGame(save.seed));
+  return save.actions.slice(0, end).reduce(applyAction, newGame(save.seed, save.firstPlayer));
 }
 export function parseSave(text: string): Save {
   if (new TextEncoder().encode(text).length > MAX_SAVE_BYTES) throw new Error("存档不能超过 2 MB");
@@ -14,6 +14,7 @@ export function parseSave(text: string): Save {
     !Number.isInteger(s.seed) ||
     s.seed < 0 ||
     s.seed > 4294967295 ||
+    (s.firstPlayer !== undefined && s.firstPlayer !== 0 && s.firstPlayer !== 1) ||
     !["easy", "normal", "hard", "research"].includes(s.difficulty) ||
     !["ai", "local", "watch"].includes(s.mode) ||
     !Array.isArray(s.actions) ||
@@ -23,11 +24,12 @@ export function parseSave(text: string): Save {
   const save: Save = {
     version: 1,
     seed: s.seed,
+    ...(s.firstPlayer !== undefined ? { firstPlayer: s.firstPlayer } : {}),
     difficulty: s.difficulty === "research" ? "hard" : s.difficulty,
     mode: s.mode,
     actions: s.actions,
   };
-  let state = newGame(save.seed);
+  let state = newGame(save.seed, save.firstPlayer);
   const sameAction = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
   if (s.analysis !== undefined && (!s.analysis || typeof s.analysis !== "object" || Array.isArray(s.analysis)))
     throw new Error("AI 复盘记录格式无效");

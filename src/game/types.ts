@@ -26,6 +26,7 @@ export interface State {
 export interface Save {
   version: 1;
   seed: number;
+  firstPlayer?: 0 | 1;
   difficulty: Difficulty;
   mode: Mode;
   actions: Action[];

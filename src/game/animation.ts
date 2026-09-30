@@ -5,10 +5,13 @@ export function actionAnimationFrame(entry: HistoryEntry, elapsed: number, reduc
   const from = entry.before.players[entry.actor].time;
   const to = entry.after.players[entry.actor].time;
   const landing = entry.action.type === 'advance' ? 0 : 700;
+  const flight = entry.action.type === 'buy' ? 500 : 0;
   const travel = to === from ? 0 : Math.min(2400, Math.max(500, (to - from) * 130));
   const end = reduced ? 700 : landing + travel + 1100;
   const progress = reduced || !travel ? 1 : Math.max(0, Math.min(1, (elapsed - landing) / travel));
   return {
+    flying: !reduced && flight > 0 && elapsed < flight,
+    flightProgress: reduced || !flight ? 1 : Math.max(0, Math.min(1, elapsed / flight)),
     landed: reduced || elapsed >= landing,
     time: from + (to - from) * progress,
     arrived: progress === 1,

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
 import { Cloth, FabricDefs } from "./Fabric.tsx";
 import type { Cell } from "../game/types.ts";
 import { PATCHES } from "../game/data.ts";
@@ -8,6 +8,7 @@ export function Board({
   player,
   state,
   preview,
+  previewValid,
   highlight,
   landing,
   pointerCell = null,
@@ -19,6 +20,7 @@ export function Board({
   player: Player;
   state: State;
   preview?: Action;
+  previewValid?: boolean;
   highlight?: Action;
   landing?: Action;
   pointerCell?: number | null;
@@ -27,10 +29,6 @@ export function Board({
   onPlace?: (i: number) => void;
   label: string;
 }) {
-  const [inspected, setInspected] = useState<number | null>(null);
-  useEffect(() => { if (interactive) setInspected(null); }, [interactive]);
-  const inspectedId = inspected === null ? -1 : player.board[inspected];
-  const patch = PATCHES[inspectedId];
   const marked = new Set(highlight && highlight.type !== "advance" ? actionCells(highlight).map(([x, y]) => (highlight.y + y) * 9 + highlight.x + x) : []);
   const prefix = `quilt${useId().replace(/:/g, "")}`;
   const groups = new Map<number, Cell[]>();
@@ -48,11 +46,12 @@ export function Board({
         y = preview.y + dy;
       if (x >= 0 && x < 9 && y >= 0 && y < 9) ghost.add(y * 9 + x);
     }
-  const valid = preview ? isLegal(state, preview) : false;
+  const valid = previewValid ?? (preview ? isLegal(state, preview) : false);
   return (
     <>
     <div
       className={`quilt player-color-${state.players.indexOf(player)} ${interactive ? "interactive" : ""}`}
+      data-player={state.players.indexOf(player)}
       role="group"
       aria-label={label}
       onMouseLeave={() => onHover?.(null)}
@@ -71,7 +70,7 @@ export function Board({
       </svg>
       {landing && landing.type !== "advance" && <svg className="action-cloth-layer" viewBox="0 0 288 288" aria-hidden="true">
         <FabricDefs prefix={`${prefix}-landing`} ids={[landing.type === "buy" ? landing.piece : 33]} />
-        <g className="action-cloth"><Cloth id={landing.type === "buy" ? landing.piece : 33} prefix={`${prefix}-landing`} cells={actionCells(landing).map(([x,y]) => [landing.x+x,landing.y+y])} income={landing.type === "buy" ? PATCHES[landing.piece].income : 0} /></g>
+        <g className="action-cloth" style={landing.type === "buy" ? { animationDuration: "200ms" } : undefined}><Cloth id={landing.type === "buy" ? landing.piece : 33} prefix={`${prefix}-landing`} cells={actionCells(landing).map(([x,y]) => [landing.x+x,landing.y+y])} income={landing.type === "buy" ? PATCHES[landing.piece].income : 0} /></g>
       </svg>}
       {preview && preview.type !== "advance" && (
         <svg
@@ -101,22 +100,19 @@ export function Board({
         </svg>
       )}
       {player.board.map((id, i) => {
-        const cls = `stitch ${pointerCell === i && preview ? "placement-pin" : ""} ${id >= 0 ? "filled" : ""} ${marked.has(i) ? "move-highlight" : ""} ${inspectedId >= 0 && (inspectedId === 33 ? inspected === i : inspectedId === id) ? "inspected-cell" : ""} ${ghost.has(i) ? `ghost ${valid ? "valid" : "invalid"}` : ""}`;
+        const cls = `stitch ${pointerCell === i && preview ? "placement-pin" : ""} ${id >= 0 ? "filled" : ""} ${marked.has(i) ? "move-highlight" : ""} ${ghost.has(i) ? `ghost ${valid ? "valid" : "invalid"}` : ""}`;
         const title = `${Math.floor(i / 9) + 1} 行 ${(i % 9) + 1} 列，${id < 0 ? "空格" : id === 33 ? "皮革" : `拼布 ${id + 1}`}`;
-        return interactive || id >= 0 ? (
+        return interactive ? (
           <button
             type="button"
             key={i}
             className={cls}
             data-cell={i}
-            aria-label={`${title}${interactive ? "，点击选择落点" : id >= 0 ? "，点击查看成本和前进步数" : ""}`}
+            aria-label={`${title}，点击选择落点`}
             title={title}
             onMouseEnter={() => onHover?.(i)}
             onFocus={() => onHover?.(i)}
-            onClick={() => {
-              if (interactive) { setInspected(null); onPlace?.(i); }
-              else if (id >= 0) { setInspected(i); onHover?.(null); }
-            }}
+            onClick={() => onPlace?.(i)}
             onKeyDown={(e) => {
               const delta = (
                 {
@@ -135,16 +131,10 @@ export function Board({
             }}
           />
         ) : (
-          <span key={i} className={cls} title={title} />
+          <span key={i} className={cls} data-cell={i} title={title} />
         );
       })}
     </div>
-    {inspectedId >= 0 && <div className="patch-facts" role="status" aria-label="拼布详情">
-      <strong>{inspectedId === 33 ? "皮革补丁" : `${inspectedId + 1} 号拼布`}</strong>
-      <span>成本 <b>{patch?.cost ?? 0} 纽扣</b> · 前进 <b>{patch?.time ?? 0} 步</b> · 收入 <b>+{patch?.income ?? 0}</b></span>
-      <small>{inspectedId === 33 ? "时间轨道奖励，免费缝上，不额外前进。" : "显示拼布原始成本与步数；到终点时实际前进可能更少。"}</small>
-      <button type="button" className="text-btn" onClick={() => setInspected(null)}>收起详情</button>
-    </div>}
     </>
   );
 }

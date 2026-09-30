@@ -17,7 +17,7 @@ export function describeStep(before: State, action: Action, after: State) {
     bonus: before.bonusOwner === null && after.bonusOwner !== null };
 }
 export function history(save: Save) {
-  let before = newGame(save.seed);
+  let before = newGame(save.seed, save.firstPlayer);
   return save.actions.map(action => {
     const after = applyAction(before, action), entry = describeStep(before, action, after);
     before = after;

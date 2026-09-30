@@ -11,8 +11,8 @@ for (let y=2;y<=7;y++) perimeter.push([12,y]);
 for (let x=11;x>=1;x--) perimeter.push([x,7]);
 for (let y=6;y>=2;y--) perimeter.push([1,y]);
 
-export function TableMarket({state,human,piece,onSelect,children}: {
- state:State; human:boolean; piece:number|null; onSelect:(id:number)=>void; children:ReactNode;
+export function TableMarket({state,human,piece,flyingPiece,onSelect,children}: {
+ state:State; human:boolean; piece:number|null; flyingPiece?:number|null; onSelect:(id:number)=>void; children:ReactNode;
 }) {
  const [inspected,setInspected]=useState<number|null>(null);
  const [hovered,setHovered]=useState<{id:number;rank:number;left:number;top:number;above:boolean}|null>(null);
@@ -27,14 +27,14 @@ export function TableMarket({state,human,piece,onSelect,children}: {
  };
  return <section className="table-market" aria-label="环绕三个棋盘的布料市场">
    <div className="table-market-info" aria-live="polite">
-     <strong>布料环 · 顺时针 →</strong>
+     <strong>布料环 · 顺时针 ↻</strong>
      <span>{patch?`${focus+1} 号拼布 · 成本 ${patch.cost} 纽扣 · 前进 ${patch.time} 步 · 收入 +${patch.income}`:'布料已售罄，可前进赚纽扣'}</span>
-     <small>绿框前三块可购买 · 点击拼布查看</small>
+     <small>绿框前三块可购买 · 首尾相接</small>
    </div>
    <div className="table-ring-scroll" onScroll={()=>setHovered(null)}><div className="table-ring">
      <div className="table-ring-marker" style={position(0)}>♟<span>起点 →</span></div>
-     {order.map((id,rank)=><button type="button" key={id} style={position(rank+1)}
-       className={`table-ring-patch ${rank<3?'reachable':''} ${piece===id?'selected':''}`}
+     {order.map((id,rank)=><button type="button" key={id} data-piece-id={id} style={position(rank+1)}
+       className={`table-ring-patch ${rank<3?'reachable':''} ${piece===id?'selected':''} ${flyingPiece===id?'departing':''}`}
        aria-label={`环上第 ${rank+1} 块，${id+1} 号拼布，成本 ${PATCHES[id].cost} 纽扣，前进 ${PATCHES[id].time} 步${rank<3?'，购买范围内':'，后续布料'}`}
        aria-pressed={focus===id}
        onPointerEnter={e=>{const r=e.currentTarget.getBoundingClientRect();setHovered({id,rank,left:Math.max(8,Math.min(window.innerWidth-250,r.left+r.width/2-120)),top:r.top>=250?r.top-8:r.bottom+8,above:r.top>=250});}}

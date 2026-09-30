@@ -37,6 +37,14 @@ test("seed reproducibility and neutral token begins after domino", () => {
   assert.equal(s.circle[(s.token + s.circle.length - 1) % s.circle.length], 0);
   assert.equal(new Set(s.circle).size, 33);
 });
+test("the chosen first player survives save import and replay", () => {
+  const save: Save = { version: 1, seed: 123, firstPlayer: 1, difficulty: "hard", mode: "ai", actions: [{ type: "advance" }] };
+  assert.equal(newGame(save.seed, save.firstPlayer).current, 1);
+  assert.deepEqual(parseSave(JSON.stringify(save)), save);
+  assert.equal(replay(save).players[1].time, 1);
+  assert.equal(replay(save).players[0].time, 0);
+  assert.throws(() => parseSave(JSON.stringify({ ...save, firstPlayer: 2 })));
+});
 test("reaching equal time retains the active player; buying advances circle past chosen patch", () => {
   const s = newGame(1);
   s.circle = [0, 1, 2, 3];

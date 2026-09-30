@@ -2,7 +2,9 @@ import { useEffect, useRef } from "react";
 import { Check, ArrowDown } from "lucide-react";
 import { actionLabel, actionPosition, type HistoryEntry } from "../game/history.ts";
 import { score, winner } from "../game/engine.ts";
+import { FORMS } from "../game/data.ts";
 import type { AIResult, State } from "../game/types.ts";
+import { Patch } from "./Patch.tsx";
 export function ScoreRecord({ state, name }: { state: State; name: (i: number) => string }) {
   return <section className="score-record" aria-label="终局得分记录">
     <h3>终局得分记录 · {name(winner(state) ?? 0)}获胜</h3>
@@ -27,10 +29,10 @@ export function StepDetail({ entry }: { entry: HistoryEntry }) {
       {entry.after.over && " · 对局结束"}</span>
   </span>;
 }
-export function MoveHistory({ entries, index, name, onSeek }: {
-  entries: HistoryEntry[]; index: number; name: (i: number) => string; onSeek: (index: number) => void;
+export function MoveHistory({ entries, index, name }: {
+  entries: HistoryEntry[]; index: number; name: (i: number) => string;
 }) {
-  const current = useRef<HTMLButtonElement>(null);
+  const current = useRef<HTMLLIElement>(null);
   useEffect(() => {
     const row = current.current, list = row?.closest("ol");
     if (row && list) {
@@ -39,15 +41,20 @@ export function MoveHistory({ entries, index, name, onSeek }: {
     }
   }, [index, entries.length]);
   return <section className="log panel move-history" aria-label="历史操作记录">
-    <div className="section-label"><h2>行动日志</h2><span>{entries.length} 步 · 点击查看行动和落点</span></div>
-    <div className="history-controls"><button className="text-btn" onClick={() => onSeek(0)}>从头回放</button><span>当前查看：{index === 0 ? "初始局面" : `第 ${index} 步之后`}</span></div>
+    <div className="section-label"><h2>行动日志</h2><span>共 {entries.length} 步</span></div>
     {entries.length === 0 ? <p className="muted">双方行动后，每一步会依次显示在这里。</p> : <ol className="history-list move-strip">
-      {entries.map((entry, i) => <li key={i}>
-        <button ref={index === i + 1 ? current : undefined} className={i === entries.length - 1 ? "latest-step" : ""} aria-current={index === i + 1 ? "step" : undefined} onClick={() => onSeek(i + 1)}>
-          <span className="move-number">#{i + 1} · {name(entry.actor)}{i === entries.length - 1 && <b>最近一步</b>}</span>
-          <strong>{actionLabel(entry.action)}</strong>
-          <span>{entry.action.type === "advance" ? `时间 ${entry.before.players[entry.actor].time} → ${entry.after.players[entry.actor].time}` : actionPosition(entry.action)}</span>
-        </button>
+      {entries.map((entry, i) => <li key={i} ref={index === i + 1 ? current : undefined}>
+        <div className={`move-entry ${i === entries.length - 1 ? "latest-step" : ""}`}>
+          <span className={`move-thumbnail player-color-${entry.actor}`} aria-hidden="true">
+            {entry.action.type === "buy" ? <Patch id={entry.action.piece} cells={FORMS[entry.action.piece][entry.action.orientation]} /> :
+              <span className="move-glyph">{entry.action.type === "leather" ? "✚" : "→"}</span>}
+          </span>
+          <span className="move-copy">
+            <span className="move-number">#{i + 1} · {name(entry.actor)}{i === entries.length - 1 && <b>最近</b>}</span>
+            <strong>{actionLabel(entry.action)}</strong>
+            <small>{entry.action.type === "advance" ? `时间 ${entry.before.players[entry.actor].time} → ${entry.after.players[entry.actor].time}` : actionPosition(entry.action)}</small>
+          </span>
+        </div>
       </li>)}
     </ol>}
   </section>;

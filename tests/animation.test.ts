@@ -10,6 +10,10 @@ test('cloth lands before pawn movement; every frame stays within the actual move
   assert(action);
   const after = applyAction(before, action), entry = describeStep(before, action, after);
   const original = JSON.stringify(entry);
+  assert(actionAnimationFrame(entry, 0).flying);
+  assert(actionAnimationFrame(entry, 499).flying);
+  assert.equal(actionAnimationFrame(entry, 500).flying, false);
+  assert.equal(actionAnimationFrame(entry, 500).flightProgress, 1);
   assert.equal(actionAnimationFrame(entry, 699).landed, false);
   assert.equal(actionAnimationFrame(entry, 699).time, before.players[entry.actor].time);
   assert.equal(actionAnimationFrame(entry, 700).landed, true);
@@ -35,6 +39,7 @@ test('long advance stops at 53 and leather never moves the pawn', () => {
   leatherState.players[0].time = 20;
   const leather = {type:'leather', x:0, y:0} as const;
   const step = describeStep(leatherState, leather, applyAction(leatherState, leather));
+  assert.equal(actionAnimationFrame(step, 0).flying, false);
   for (const ms of [0, 699, 700, 900, 5000]) assert.equal(actionAnimationFrame(step, ms).time, 20);
 });
 

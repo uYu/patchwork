@@ -1,6 +1,8 @@
-import { DecisionReview, LatestMove, MoveHistory, ScoreRecord } from "./components/History.tsx";
+import { DecisionReview, MoveHistory, ScoreRecord } from "./components/History.tsx";
 import { useActionAnimation } from "./components/useActionAnimation.ts";
 import { TableMarket } from "./components/TableMarket.tsx";
+import { FlyingPatch } from "./components/FlyingPatch.tsx";
+import { PracticeMode } from "./components/PracticeMode.tsx";
 import { history, describeStep, type HistoryEntry } from "./game/history.ts";
 import { placementAction } from "./game/placement.ts";
 import { TimeBoard } from "./components/TimeBoard.tsx";
@@ -43,12 +45,10 @@ export default function App() {
     [save, setSave] = useState<Save | null>(initial.save),
     [screen, setScreen] = useState<"menu" | "game">("menu");
   const [modal, setModal] = useState<
-      "rules" | "new" | "pause" | "result" | null
+      "rules" | "new" | "pause" | "practice" | "result" | null
     >(null),
-    [difficulty, setDifficulty] = useState<Difficulty>(
-      initial.save?.difficulty ?? "normal",
-    ),
-    [mode, setMode] = useState<Mode>(initial.save?.mode ?? "ai");
+    [difficulty, setDifficulty] = useState<Difficulty>("hard"),
+    [mode, setMode] = useState<Mode>("ai");
   const [animation, setAnimation] = useState<HistoryEntry | null>(null);
   const [watchPaused, setWatchPaused] = useState(false);
   const [advanceSelected, setAdvanceSelected] = useState(false);
@@ -188,8 +188,9 @@ export default function App() {
   }, [playing, replayIndex, save, modal, screen]);
   const begin = () => {
     setAnimation(null);
-    const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-    setSave({ version: 1, seed, difficulty, mode, actions: [] });
+    const [seed, coin] = crypto.getRandomValues(new Uint32Array(2));
+    const firstPlayer = mode === "ai" ? (coin & 1) as 0 | 1 : 0;
+    setSave({ version: 1, seed, firstPlayer, difficulty, mode, actions: [] });
     setScreen("game");
     setModal(null);
     setReplayIndex(null);
@@ -197,6 +198,7 @@ export default function App() {
     setPiece(null);
     setAnchor(null);
     setHover(null);
+    setAdvanceSelected(false);
     setOrientation(0);
     setStats(null);
     setWatchPaused(false);
@@ -234,7 +236,6 @@ export default function App() {
   const preview = advanceSelected ? undefined : makeAction(anchor ?? hover),
     chosen: Action | undefined = advanceSelected && !state?.pending ? {type: "advance"} : makeAction(anchor);
   const advanceSteps = state ? Math.max(0, Math.min(53, state.players[1 - state.current].time + 1) - state.players[state.current].time) : 0;
-  useEffect(() => { setAdvanceSelected(false); }, [state]);
   const exitReplay = () => {
     setReplayIndex(null);
     setPlaying(false);
@@ -268,6 +269,10 @@ export default function App() {
       setScreen("game");
       setModal(null);
       exitReplay();
+      setPiece(null);
+      setAnchor(null);
+      setHover(null);
+      setAdvanceSelected(false);
       setOrientation(0);
       setStats(null);
       setWatchPaused(false);
@@ -352,7 +357,7 @@ export default function App() {
               在时间走完之前，缝好一床独一无二的被子。
             </p>
             <div className="menu-actions">
-              <button className="primary large" onClick={() => setModal("new")}>
+              <button className="primary large" onClick={() => { setMode("ai"); setDifficulty("hard"); setModal("new"); }}>
                 开始新作品 <ArrowRight size={20} />
               </button>
               <button className="secondary large" onClick={() => {
@@ -440,31 +445,34 @@ export default function App() {
               {watchPaused ? "继续观战" : "暂停观战"}
             </button>
           </div>}
-          {state.bonusOwner !== null && <div className="bonus-notice" role="status">
-            <strong>✦ {name(state.bonusOwner)}已拿到 7 × 7 奖励 · +7 分</strong>
-            <span>第 {entries.findIndex(e => e.bonus) + 1} 步完成 · 本局唯一奖励</span>
+          {!isReplay && currentEntry?.bonus && state.bonusOwner !== null && <div className="bonus-notice" role="alert">
+            <span className="bonus-notice-icon" aria-hidden="true">✦</span>
+            <strong>7 × 7 完成！</strong>
+            <span>{name(state.bonusOwner)} 获得本局唯一奖励</span>
+            <b>+7 分</b>
           </div>}
           <div className="table-layout tabletop-layout">
             <div className="play-area">
-              <TableMarket state={animation?.before ?? state} human={human} piece={piece} onSelect={id => {
+              <TableMarket state={animation?.before ?? state} human={human} piece={piece} flyingPiece={animation?.action.type === "buy" && phase?.flying ? animation.action.piece : null} onSelect={id => {
                 setAdvanceSelected(false); setPiece(id); setOrientation(0); setAnchor(null); setHover(null);
               }}>
               <div className="inline-action-status" role="status">
-                {animation ? <><strong>{name(animation.actor)} · {animation.action.type === "advance" ? "前进赚纽扣" : phase?.landed ? "拼布已落下 · 时间棋子前进" : "正在放置拼布"}</strong><button className="text-btn" onClick={() => setAnimation(null)}>跳过动画</button></> : <span>{human ? state.pending ? "小补丁待放：点击棋盘空格" : advanceSelected ? "已选择前进：在棋盘下方确认" : "点击外圈绿框拼布选购，再在棋盘上定位" : save.mode === "ai" ? "小织正在思考，请稍候" : "双方自动落子中"}</span>}
+                {animation ? <><strong>{name(animation.actor)} · {animation.action.type === "advance" ? "前进赚纽扣" : phase?.flying ? "拼布从布料环飞向棋盘" : phase?.landed ? "拼布已落下 · 时间棋子前进" : "正在缝上拼布"}</strong><button className="text-btn" onClick={() => setAnimation(null)}>跳过动画</button></> : <span>{human ? chosen && !isLegal(state, chosen) ? "这个落点重叠或越界，请换一格" : state.pending ? `小补丁待放：还剩 ${state.pending} 块，点击棋盘空格` : advanceSelected ? `已选前进 ${advanceSteps} 格、获得 ${advanceSteps} 纽扣；在棋盘下方确认` : piece !== null ? `已选 ${piece + 1} 号拼布：成本 ${PATCHES[piece].cost} · 前进 ${PATCHES[piece].time} · 收入 +${PATCHES[piece].income}；点击棋盘定位` : "点击外圈绿框拼布选购，再在棋盘上定位" : save.mode === "ai" ? "小织正在思考，请稍候" : "双方自动落子中"}</span>}
               </div>
               <div className="action-slot">
               {human ? (state.pending ? <div className="action-choice guided leather-choice" aria-label="小补丁行动">
                 <strong>先缝小补丁 · 剩余 {state.pending} 块</strong>
                 <small>免费填 1 格，不消耗时间。点击棋盘空格选位置，再按“确认缝上小补丁”。</small>
-              </div> : <div className="action-choice guided" aria-label="本回合行动">
+              </div> : <div className="action-choice guided practice-available" aria-label="本回合行动">
                 <strong>本回合选一项</strong>
                 <div className="action-options">
                   <button className={!advanceSelected ? "selected" : ""} aria-pressed={!advanceSelected}
-                    onClick={() => setAdvanceSelected(false)}><b>缝上拼布</b><span>选外圈绿框布料，支付成本并摆到棋盘；之后时间前进。</span></button>
+                    onClick={() => setAdvanceSelected(false)}><b>缝上拼布</b><span>选布并放置</span></button>
                   <button className={advanceSelected ? "selected" : ""} aria-pressed={advanceSelected}
-                    onClick={() => {setAdvanceSelected(true);setAnchor(null);setHover(null);}}><b>前进赚纽扣</b><span>前进 {advanceSteps} 格，立即获得 {advanceSteps} 枚纽扣；跨过收入标记还会结算收入。</span></button>
+                    onClick={() => {setAdvanceSelected(true);setAnchor(null);setHover(null);}}><b>前进赚纽扣</b><span>+{advanceSteps} 纽扣 · {advanceSteps} 步</span></button>
+                  <button className="practice-open" onClick={() => setModal("practice")}><b>练习摆放</b><span>试拼可撤回</span></button>
                 </div>
-                <small>{advanceSelected ? `已选前进：将获得 ${advanceSteps} 枚纽扣。按棋盘下方的按钮确认。` : piece !== null ? `已选 ${piece + 1} 号拼布：花费 ${PATCHES[piece].cost} 纽扣，前进 ${PATCHES[piece].time} 格，收入 +${PATCHES[piece].income}。点击棋盘选位置。` : "先点击外圈绿框的可买拼布，再在棋盘选落点。"}</small>
+                <small>{advanceSelected ? `已选前进：将获得 ${advanceSteps} 枚纽扣。按棋盘下方的按钮确认。` : piece !== null ? `已选 ${piece + 1} 号拼布：花费 ${PATCHES[piece].cost} 纽扣，前进 ${PATCHES[piece].time} 格，收入 +${PATCHES[piece].income}。点击棋盘选位置。` : "先点击上方绿框的可买拼布，再在棋盘选落点。"}</small>
               </div>) : <div className="action-choice guided action-choice-wait" aria-hidden="true">
                 <strong>{animation ? "正在完成这一步" : isReplay ? "正在回放" : state.over ? "本局已结束" : save.mode === "watch" ? watchPaused ? "观战已暂停" : "AI 对弈中" : "小织正在思考"}</strong>
                 <small>行动完成后，这里会显示下一步可选的操作。</small>
@@ -508,7 +516,7 @@ export default function App() {
                           key={i}
                           player={p}
                           state={boardState ?? state}
-                          landing={animation?.actor === i && !phase?.landed ? animation.action : undefined}
+                          landing={animation?.actor === i && !phase?.landed && !phase?.flying ? animation.action : undefined}
                           highlight={(!animation || phase?.landed) && currentEntry?.actor === i ? currentEntry.action : undefined}
                           preview={human ? preview : undefined}
                           pointerCell={human ? (anchor ?? hover) : null}
@@ -666,7 +674,7 @@ export default function App() {
                           key={i}
                           player={p}
                           state={boardState ?? state}
-                          landing={animation?.actor === i && !phase?.landed ? animation.action : undefined}
+                          landing={animation?.actor === i && !phase?.landed && !phase?.flying ? animation.action : undefined}
                           highlight={(!animation || phase?.landed) && currentEntry?.actor === i ? currentEntry.action : undefined}
                           label={`${name(i)}的棋盘`}
                         />
@@ -704,14 +712,14 @@ export default function App() {
                 <span>剩余纽扣<b>◎ {p.buttons}</b></span>
                 <span>每次收入<b>+{p.income}</b></span>
                 <span>时间<b>{p.time} / 53</b></span>
+                <span>未填空格<b>{p.board.filter(v => v < 0).length}</b></span>
                 <span>得分<b>{score(p)}</b></span>
               </div>
             </div>)}
             <div className="session-tag">{isReplay ? "回放" : save.mode === "watch" ? `${DIFFICULTY[save.difficulty]} AI 对弈` : save.mode === "ai" ? `${DIFFICULTY[save.difficulty]} AI` : "双人对弈"}<span>第 {replayIndex ?? save.actions.length} 步</span></div>
           </section>
 
-          <MoveHistory entries={entries} index={shownIndex} name={name} onSeek={seekReplay} />
-          {!isReplay && currentEntry && <LatestMove entry={currentEntry} index={shownIndex} name={name} onSeek={seekReplay} />}
+          <MoveHistory entries={entries} index={shownIndex} name={name} />
           {isReplay && (
             <div className="replay-bar">
               <button
@@ -746,6 +754,8 @@ export default function App() {
             </aside>
           </div>
 
+          {animation && phase?.flying && <FlyingPatch entry={animation} progress={phase.flightProgress} />}
+
           {finalState?.over && <div className="panel final-record"><ScoreRecord state={finalState} name={name} /></div>}
           <footer className="game-footer">
             <span>每一块碎布，都有它的位置。</span>
@@ -765,8 +775,11 @@ export default function App() {
                 ? "开启一件新作品"
                 : modal === "pause"
                   ? "休息一下，喝杯茶"
+                  : modal === "practice"
+                    ? "练习摆放 · 随时撤回"
                   : "最后一针，完成！"
           }
+          className={modal === "practice" ? "practice-dialog" : undefined}
           onClose={() => setModal(null)}
         >
           {modal === "rules" ? (
@@ -801,8 +814,8 @@ export default function App() {
               )}
               <p className="muted">
                 {save
-                  ? "开始新作品会替换当前存档。可先导出，留作纪念。"
-                  : mode === "watch" ? "双方会自动对弈，可随时暂停、查看棋盘与回放。" : "每人 5 枚纽扣，时间从零开始。你先行动。"}
+                  ? `开始新作品会替换当前存档。可先导出备份。${mode === "ai" ? "新局先后手随机决定。" : ""}`
+                  : mode === "watch" ? "双方会自动对弈，可随时暂停、查看棋盘与回放。" : mode === "ai" ? "每人 5 枚纽扣，时间从零开始；先后手随机决定。" : "每人 5 枚纽扣，时间从零开始。玩家一先行动。"}
               </p>
               {save && (
                 <button
@@ -817,6 +830,8 @@ export default function App() {
                 {mode === "watch" ? "开始观战" : "开始缝制"} <ArrowRight size={18} />
               </button>
             </div>
+          ) : modal === "practice" && state ? (
+            <PracticeMode state={state} actor={state.current} onClose={() => setModal(null)} />
           ) : modal === "pause" ? (
             <div className="settings">
               <p className="muted">
@@ -863,7 +878,7 @@ export default function App() {
                 <div className="eyebrow">A QUILT TO REMEMBER</div>
                 <ScoreRecord state={state} name={name} />
                 <div className="menu-actions">
-                  <button className="primary" onClick={() => setModal("new")}>
+                  <button className="primary" onClick={() => { setMode("ai"); setDifficulty("hard"); setModal("new"); }}>
                     再缝一床
                   </button>
                   <button className="secondary" onClick={startReplay}>
