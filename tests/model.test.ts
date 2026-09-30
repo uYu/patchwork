@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {encode,wasmModule,search} from '../src/game/ai-wasm.ts';
+import {decodeAction,encode,wasmModule,search} from '../src/game/ai-wasm.ts';
 import {newGame,isLegal,legalActions,applyAction} from '../src/game/engine.ts';
 
 test('Wasm exposes finite connected-model scores for both perspectives',async()=>{
@@ -38,4 +38,11 @@ test('model ranks eight root placements per patch and leather, retaining advance
 test('timed hard search actually uses the model and returns legal actions',async()=>{
  const s=newGame(55);const result=await search(s,'hard',22);
  assert(result.modelUsed);assert((result.modelEvaluations??0)>0);assert(isLegal(s,result.action));
+});
+test('short advanced search catches shortlist timeout and returns a legal action',async()=>{
+ const s=newGame(1000),m=await wasmModule();
+ m.HEAP32.set(encode(s),m._pw_input()/4);
+ assert.equal(m._pw_search(100,-1,1000000),1);
+ const out=m.HEAP32.slice(m._pw_output()/4,m._pw_output()/4+5);
+ assert(isLegal(s,decodeAction(out)));
 });

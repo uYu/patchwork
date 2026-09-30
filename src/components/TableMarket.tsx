@@ -16,6 +16,9 @@ export function TableMarket({state,human,piece,flyingPiece,onSelect,children}: {
  const fits=useMemo(()=>PATCHES.map(p=>canFitPatch(player.board,p.id)),[player.board]);
  const focus=inspected!==null&&order.includes(inspected)?inspected:piece!==null&&order.includes(piece)?piece:order[0];
  const patch=PATCHES[focus];
+ const previewCells=hovered?PATCHES[hovered.id].cells:null;
+ const previewWidth=previewCells?Math.max(...previewCells.map(([x])=>x))+1:0;
+ const previewHeight=previewCells?Math.max(...previewCells.map(([,y])=>y))+1:0;
  const position=(rank:number)=>marketRingPosition(rank,order.length);
  return <section className="table-market" aria-label="环绕三个棋盘的布料市场">
    <div className="table-market-info" aria-live="polite">
@@ -42,9 +45,16 @@ export function TableMarket({state,human,piece,flyingPiece,onSelect,children}: {
    </div></div>
    {hovered && <div className={`table-patch-tooltip ${hovered.above?'above':''}`} style={{left:hovered.left,top:hovered.top}} role="status">
      <strong>{hovered.id+1} 号拼布 <small>环上第 {hovered.rank+1} 块</small></strong>
-     <Patch id={hovered.id} uniformScale />
-     <span>成本 <b>{PATCHES[hovered.id].cost} 纽扣</b></span>
-     <span>前进 <b>{PATCHES[hovered.id].time} 步</b> · 收入 <b>+{PATCHES[hovered.id].income}</b></span>
+     <div className={`table-patch-tooltip-body ${previewHeight>=previewWidth+2?'portrait':''}`}>
+       <div className="table-patch-tooltip-preview" style={{width:previewWidth*34,height:previewHeight*34}}>
+         <Patch id={hovered.id} />
+       </div>
+       <div className="table-patch-tooltip-stats">
+         <span>成本 <b>{PATCHES[hovered.id].cost} 纽扣</b></span>
+         <span>前进 <b>{PATCHES[hovered.id].time} 步</b></span>
+         <span>收入 <b>+{PATCHES[hovered.id].income}</b></span>
+       </div>
+     </div>
      <small>{PATCHES[hovered.id].cells.length} 格 · {hovered.rank<3?(fits[hovered.id]&&PATCHES[hovered.id].cost<=player.buttons?'当前可购买':!fits[hovered.id]?'当前棋盘放不下':'纽扣不足'):'后续布料'}</small>
    </div>}
  </section>;

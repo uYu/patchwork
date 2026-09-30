@@ -806,9 +806,9 @@ export default function App() {
                       setDifficulty(e.target.value as Difficulty)
                     }
                   >
-                    <option value="easy">入门 · 轻松缝制</option>
-                    <option value="normal">熟练 · C++ 启发式</option>
-                    <option value="hard">高级 · 连通模型 + 全局前瞻，约 5 秒</option>
+                    <option value="easy">入门</option>
+                    <option value="normal">熟练</option>
+                    <option value="hard">高级</option>
                   </select>
                 </label>
               )}
