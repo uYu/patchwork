@@ -42,9 +42,9 @@ export interface AIResult {
   action: Action;
   modelEvaluations?: number;
   modelUsed?: boolean;
-  strategy?: "advanced" | "research" | "research2";
+  strategy?: "advanced2" | "advanced" | "experimental" | "research" | "research2";
   rootCandidates?: number;
   simulations: number;
   elapsed: number;
-  backend: "wasm" | "typescript";
+  backend: "wasm" | "native" | "typescript";
 }

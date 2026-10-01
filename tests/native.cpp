@@ -33,5 +33,22 @@ int main(){
  contact.pending=0;contact.circle={0};contact.players[0].buttons=100;
  auto candidates=pw::aiLegal(contact);assert(!candidates.empty());
  for(const auto& a:candidates)assert(pw::touchesCloth(contact.players[0].board,a));
+ contactwide::CachedOpponent cached(contact,contact.current);
+ for(const auto& a:candidates)if(a.type!=0){
+  pw::State next=contact;pw::apply(next,a);
+  assert(std::abs(cached.value(next)-contactwide::value(next,contact.current))<1e-5f);
+ }
+ int internalEvals=0;auto ranked=pw::internalModelCandidates(contact,internalEvals);
+ assert(internalEvals>0&&!ranked.empty());
+ int placements=0;
+ for(const auto& a:ranked){
+  assert(std::any_of(candidates.begin(),candidates.end(),[&](const pw::Action& legal){return legal.type==a.type&&legal.piece==a.piece&&legal.mask==a.mask;}));
+  placements+=a.type!=0;
+ }
+ assert(placements<=4);
+ contact.players[1].buttons=100;
+ std::vector<pw::Action> roots{pw::Action{}};
+ auto withInternal=pw::search(contact,0,1,7,&roots,pw::candidates,nullptr,true);
+ assert(withInternal.modelEvaluations>0&&withInternal.modelUsed);
  std::cout<<"40 native full games, MCTS and bonus-directed rollout passed\n";
 }

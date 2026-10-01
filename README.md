@@ -1,6 +1,6 @@
 # 拼布艺术 · Patchwork Atelier
 
-中文拼布艺术桌游。规则与界面分离，C++ 位棋盘和搜索通过 WebAssembly 在 Worker 中执行，不需要服务器或模型 API。
+中文拼布艺术桌游。规则与界面分离；Linux 部署时由服务器上的原生 C++ 进程执行 AI 搜索，浏览器内的 WebAssembly 作为本地回退。
 
 ## 开始
 
@@ -17,12 +17,15 @@ npm run dev
 npm test                         # 规则、存档、完整对局、Wasm/TS 一致性
 npm run test:native              # C++ AddressSanitizer + UndefinedBehaviorSanitizer
 npm run build                    # TypeScript 检查和静态构建
+npm run build:native             # 编译本机 C++ 搜索服务进程
+npm run test:server              # HTTP 接口与原生搜索联调
+npm run serve                    # 启动页面和 AI 接口（先运行 build 与 build:native）
 npm run preview                  # 预览生产版本
 npm run simulate -- 10 normal    # 与入门策略进行完整对局，轮换策略席位
 npm run build:wasm               # 修改 C++ 或拼块数据后重建；需要 Emscripten
 ```
 
-已生成的单文件 Wasm 模块纳入源码。普通开发、构建、部署不需要安装 Emscripten。其缓存目录不可写时，可设置 `EM_CACHE=/tmp/patchwork-em-cache`。
+已生成的单文件 Wasm 模块纳入源码，用于开发环境及服务故障时的浏览器回退。普通开发、构建、部署不需要安装 Emscripten。其缓存目录不可写时，可设置 `EM_CACHE=/tmp/patchwork-em-cache`。
 
 ## 功能
 
@@ -52,9 +55,9 @@ npm run build:wasm               # 修改 C++ 或拼块数据后重建；需要 
 
 - **入门**：TypeScript 启发式，加入探索随机性。
 - **熟练**：C++ 枚举完整合法落点，按面积、成本、剩余收入次数、时间、贴边贴块、孤立空格评分。
-- **高级**：26,537 参数的连通落子排序模型（由原 47,117 参数模型裁去无效隐藏单元）为所有合法落点打分，每块拼布先选最多 12 个高分且不同的摆法，再做二至三步全局前瞻；每块最多保留 9 个落点进入 MCTS。模拟阶段考虑布局可填性和 7 × 7 目标，每步总预算约 5 秒。AI 的拼布落点必须与已有拼布边相接；玩家不受此限制。
+- **高级**：26,537 参数的连通落子排序模型（由原 47,117 参数模型裁去无效隐藏单元）为所有合法落点打分，每块拼布先选最多 12 个高分且不同的摆法，再做二至三步全局前瞻；每块最多保留 9 个落点进入 MCTS。MCTS 的第一层内部节点也用模型筛选子行动，模拟阶段考虑布局可填性和 7 × 7 目标，每步总预算约 5 秒。AI 的拼布落点必须与已有拼布边相接；玩家不受此限制。
 
-高级档权重来自原项目 `learning/contact16k/models/16000` 的连通规则重训结果，来源及校验和见 `cpp/model/README.md`。浏览器使用单个 Wasm Worker。旧“研究版”存档导入或从本地恢复时会映射到“高级”，已记录的历史行动和分析保留。
+高级档权重来自原项目 `learning/contact16k/models/16000` 的连通规则重训结果，来源及校验和见 `cpp/model/README.md`。双层模型在 200 局、每步 5 秒的对战中以 115:85 胜过旧高级，详见 `docs/MODEL_EXPERIMENT.md`。浏览器 Worker 优先请求同源 `/api/ai/search`，服务端调用原生 C++；接口不可用时在 Worker 中运行同一搜索的 Wasm 版本。旧“研究版”和“实验版”存档导入或从本地恢复时会映射到“高级”，已记录的历史行动和分析保留。
 
 C++ 使用 `unsigned __int128` 容纳 81 格，预生成全部旋转/翻转落点，以按位与判断冲突。位棋盘和紧凑状态用于搜索，TypeScript 保存彩色格子以供显示。两侧通过完整行动集及逐步状态差分测试核对，数据源只有一份。
 
@@ -66,7 +69,9 @@ src/game/data.ts           形状、变换、随机数、轨道
 src/game/engine.ts         不可变规则引擎和合法行动验证
 src/game/storage.ts        版本化存档、重放验证
 src/game/ai.ts             入门策略
-src/game/ai-wasm.ts        TS/C++ 状态编解码
+src/game/ai-wasm.ts        浏览器 Wasm 搜索
+src/game/ai-codec.ts       原生服务和 Wasm 共用的状态编解码
+src/game/ai-server.ts      同源 AI 接口客户端
 src/game/ai.worker.ts      后台 AI 生命周期入口
 src/game/wasm/             已生成 Wasm 和类型声明
 src/components/           棋盘、拼布、规则、对话框
@@ -74,6 +79,8 @@ src/App.tsx               菜单、对局交互、回放和 Worker 取消
 cpp/engine.hpp            C++ 位棋盘规则
 cpp/search.hpp            估值与 MCTS
 cpp/bridge.cpp            Wasm ABI
+cpp/server.cpp            原生搜索进程输入输出
+server/server.mjs          页面与 AI HTTP 接口
 cpp/data.hpp              自动生成，请勿手改
 scripts/generate-data.ts  从共享数据生成 C++ 表
 ```
@@ -87,7 +94,7 @@ docker compose up --build
 # http://localhost:8205
 ```
 
-后台启动可加 `-d`；需要换端口时使用 `PATCHWORK_PORT=8300 docker compose up --build`。容器在构建时执行 `npm ci` 和前端构建，镜像用 Nginx 托管静态资源；仓库已包含生成好的 Wasm 模块，因此运行 Docker Compose 不需要 Emscripten。也可将 `dist/` 交给静态服务器。构建使用相对路径，支持子目录部署。没有 Service Worker，需要通过 HTTP 服务首次加载，不能双击 HTML 运行。
+后台启动可加 `-d`；需要换端口时使用 `PATCHWORK_PORT=8300 docker compose up --build`。容器构建前端和原生 C++ 程序，Node 同时提供静态页面与 `/api/ai/search`。如镜像只在构建机器同类 CPU 上运行，可用 `AI_CXXFLAGS="-O3 -march=native" docker compose up --build` 启用该 CPU 的指令集；默认 `-O3` 便于跨机器部署。每个 AI 请求启动独立搜索进程，服务器按每步约 5 秒的高级搜索预算承担算力；默认最多同时运行 4 个搜索（或 CPU 核数，以较小者为准），可用 `PATCHWORK_MAX_SEARCHES` 调整。服务忙或不可用时浏览器会回退到 Wasm。也可只部署 `dist/` 到静态服务器。无需 Emscripten 即可构建 Docker 镜像。
 
 ## 验证记录
 

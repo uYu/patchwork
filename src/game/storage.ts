@@ -15,7 +15,7 @@ export function parseSave(text: string): Save {
     s.seed < 0 ||
     s.seed > 4294967295 ||
     (s.firstPlayer !== undefined && s.firstPlayer !== 0 && s.firstPlayer !== 1) ||
-    !["easy", "normal", "hard", "research"].includes(s.difficulty) ||
+    !["easy", "normal", "hard", "experimental", "research"].includes(s.difficulty) ||
     !["ai", "local", "watch"].includes(s.mode) ||
     !Array.isArray(s.actions) ||
     s.actions.length > 200
@@ -25,7 +25,7 @@ export function parseSave(text: string): Save {
     version: 1,
     seed: s.seed,
     ...(s.firstPlayer !== undefined ? { firstPlayer: s.firstPlayer } : {}),
-    difficulty: s.difficulty === "research" ? "hard" : s.difficulty,
+    difficulty: s.difficulty === "research" || s.difficulty === "experimental" ? "hard" : s.difficulty,
     mode: s.mode,
     actions: s.actions,
   };
@@ -40,9 +40,9 @@ export function parseSave(text: string): Save {
       const finite = (n: number) => Number.isFinite(n) && n >= 0;
       if (!detail || !isLegal(state, detail.action) || !sameAction(detail.action, action) ||
           !finite(detail.elapsed) || !Number.isInteger(detail.simulations) || detail.simulations < 0 ||
-          !["wasm", "typescript"].includes(detail.backend) ||
+          !["wasm", "native", "typescript"].includes(detail.backend) ||
           (detail.modelUsed !== undefined && typeof detail.modelUsed !== "boolean") ||
-          (detail.strategy !== undefined && !["advanced", "research", "research2"].includes(detail.strategy)) ||
+          (detail.strategy !== undefined && !["advanced2", "advanced", "experimental", "research", "research2"].includes(detail.strategy)) ||
           (detail.modelEvaluations !== undefined && !finite(detail.modelEvaluations)) ||
           (detail.candidates !== undefined && (!Array.isArray(detail.candidates) || detail.candidates.length > 32 ||
             detail.candidates.some(c => !c || !isLegal(state, c.action) || !Number.isInteger(c.visits) || c.visits < 0 ||

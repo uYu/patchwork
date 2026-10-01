@@ -1,10 +1,10 @@
 import { chooseEasy } from "./ai.ts";
-import { search } from "./ai-wasm.ts";
+import { searchServer } from "./ai-server.ts";
 import type { Difficulty, State } from "./types.ts";
 self.onmessage = async (
-  e: MessageEvent<{ state: State; difficulty: Difficulty; seed: number }>,
+  e: MessageEvent<{ state: State; difficulty: Difficulty; seed: number; serverUrl?: string }>,
 ) => {
-  const { state, difficulty, seed } = e.data;
+  const { state, difficulty, seed, serverUrl } = e.data;
   try {
     if (difficulty === "easy")
       self.postMessage({
@@ -13,7 +13,17 @@ self.onmessage = async (
         elapsed: 0,
         backend: "typescript",
       });
-    else self.postMessage(await search(state, difficulty, seed));
+    else {
+      let result;
+      try {
+        if (!serverUrl) throw new Error("AI 服务未配置");
+        result = await searchServer(state, difficulty, seed, serverUrl);
+      } catch {
+        const { search } = await import("./ai-wasm.ts");
+        result = await search(state, difficulty, seed);
+      }
+      self.postMessage(result);
+    }
   } catch (error) {
     self.postMessage({
       error: error instanceof Error ? error.message : "AI 加载失败",

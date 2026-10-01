@@ -2389,17 +2389,31 @@ body {
 .decision-review { margin:18px 0; }
 .review-boards { display:grid; grid-template-columns:repeat(2,minmax(0,260px)); gap:20px; margin:18px 0; }
 .review-boards h3, .candidate-group h3 { font-size:14px; }
-.review-candidates { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:12px; }
-.review-candidate { display:flex; flex-direction:column; gap:8px; padding:12px; border:2px solid #ddd5c6; border-radius:10px; background:#faf7ef; min-width:0; }
+.candidate-group { container-type:inline-size; }
+.review-candidates { display:grid; grid-template-columns:minmax(0,270px); gap:10px; }
+@container (min-width:440px) { .review-candidates { grid-template-columns:repeat(2,minmax(0,270px)); } }
+@container (min-width:760px) { .review-candidates { grid-template-columns:repeat(3,minmax(0,270px)); } }
+@container (min-width:1100px) { .review-candidates { grid-template-columns:repeat(4,minmax(0,270px)); } }
+.review-candidate { display:flex; flex-direction:column; gap:5px; padding:8px; border:2px solid #ddd5c6; border-radius:10px; background:#faf7ef; min-width:0; width:100%; color:inherit; text-align:left; font:inherit; }
 .review-candidate.chosen { border-color:#286c58; background:#e7f0ea; }
-.review-candidate strong { font-size:13px; }
-.review-candidate span,.review-candidate small { font-size:12px; }
+.review-candidate strong { font-size:12px; }
+.review-candidate span,.review-candidate small { font-size:11px; }
 .review-candidate .quilt { width:100%; }
+.review-visit-meter { display:block; height:4px; width:100%; border-radius:10px; background:#dfd9cd; overflow:hidden; margin-top:auto; }
+.review-visit-meter > span { display:block; height:100%; background:#2d7c68; }
+.review-candidate-preview { width:100%; }
+.review-candidate-preview .quilt { width:100%; max-width:155px; margin-inline:auto; }
+.review-outcome { display:flex; flex-wrap:wrap; align-items:center; gap:18px; margin:16px 0 20px; padding:14px; border:1px solid #c8bea9; border-radius:10px; background:#fffaf0; }
+.review-outcome-board { flex:0 0 min(100%,240px); min-width:0; }
+.review-outcome-board .quilt { width:100%; }
+.review-outcome-copy { display:grid; gap:8px; flex:1 1 190px; min-width:0; font-size:12px; line-height:1.5; }
+.review-outcome-copy strong { font-size:15px; color:#5f421d; }
+.review-outcome-copy small { color:#6c6254; }
 .final-record { margin-top:20px; }
 .score-record h3 { font-size:18px; }
 .replay-bar { flex-wrap:wrap; }
 .replay-bar input { min-width:100px; }
-@media(max-width:600px) { .review-candidates { grid-template-columns:repeat(2,minmax(0,1fr)); } .review-candidate { padding:7px; } .review-boards { gap:10px; } .last-move { align-items:flex-start; font-size:13px; } .bonus-badge { margin-left:0; } }
+@media(max-width:600px) { .review-candidate { padding:7px; } .review-boards { gap:10px; } .last-move { align-items:flex-start; font-size:13px; } .bonus-badge { margin-left:0; } }
 
 /* The selected decision has an explicit badge as well as a distinct frame. */
 .final-choice-banner { display:flex; align-items:center; gap:16px; margin:18px 0; padding:18px; border:2px solid #a46013; border-radius:12px; background:#fff0cc; color:#543408; }
@@ -2410,12 +2424,12 @@ body {
 .final-choice-copy small { font-size:13px; }
 .final-choice-banner button { display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 14px; border-radius:8px; background:#543408; color:#fff; font-size:13px; }
 .review-candidate.chosen { border:3px solid #a46013; background:#fff0cc; box-shadow:0 0 0 3px #e9ba5f55,0 5px 16px #54340820; }
-.chosen-ribbon { display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 6px; margin:-12px -12px 2px; border-radius:6px 6px 0 0; background:#a46013; color:#fff; }
-.chosen-ribbon strong { font-size:16px; letter-spacing:.04em; }
+.chosen-ribbon { display:flex; align-items:center; justify-content:center; gap:5px; padding:6px 4px; margin:-8px -8px 2px; border-radius:6px 6px 0 0; background:#a46013; color:#fff; }
+.chosen-ribbon strong { font-size:12px; letter-spacing:.04em; }
 .candidate-card-heading { display:flex; align-items:center; justify-content:space-between; gap:5px; }
 .candidate-card-heading span { color:#736d62; font-size:11px; }
 .chosen .candidate-card-heading span { padding:3px 7px; border-radius:20px; background:#543408; color:#fff; font-weight:700; }
-@media(max-width:600px) { .final-choice-banner { flex-wrap:wrap; gap:12px; padding:14px; } .final-choice-banner button { width:100%; } .chosen-ribbon { margin:-7px -7px 2px; } .chosen-ribbon strong { font-size:14px; } }
+@media(max-width:600px) { .final-choice-banner { flex-wrap:wrap; gap:12px; padding:14px; } .final-choice-banner button { width:100%; } .chosen-ribbon { margin:-7px -7px 2px; } }
 
 /* Keep every turn within reach and show the actual cells sewn this turn. */
 .move-history { margin:16px 0; }
@@ -2466,7 +2480,7 @@ body {
 .activity-sidebar .replay-bar input { width:100%; flex-basis:100%; }
 .activity-sidebar .decision-review h2 { font-size:16px; }
 .activity-sidebar .review-boards { gap:8px; }
-.activity-sidebar .review-candidates { grid-template-columns:1fr; }
+.activity-sidebar .review-outcome-board { flex-basis:min(100%,200px); margin-inline:auto; }
 .activity-sidebar .final-choice-banner { flex-wrap:wrap; padding:10px; gap:8px; }
 .activity-sidebar .final-choice-banner button { width:100%; }
 @media(min-width:1200px) {

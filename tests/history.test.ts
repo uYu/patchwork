@@ -52,4 +52,9 @@ test("real search candidates are legal, retain selected action and survive expor
   assert.equal(parseSave(JSON.stringify(old)).analysis, undefined);
   const legacyResearch = {...old, difficulty: "research"};
   assert.equal(parseSave(JSON.stringify(legacyResearch)).difficulty, "hard");
+  const experiment: Save = {
+    ...save,
+    analysis: {0: {...result, backend: "native", strategy: "experimental"}},
+  };
+  assert.deepEqual(parseSave(JSON.stringify({...experiment, difficulty: "experimental"})), experiment);
 });

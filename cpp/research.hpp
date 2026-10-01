@@ -1,6 +1,7 @@
 #pragma once
 #include "search.hpp"
 #include "model/ContactInference.hpp"
+#include <optional>
 namespace pw::research {
 using Clock=std::chrono::steady_clock;
 using Time=Clock::time_point;
@@ -17,7 +18,7 @@ inline double evaluate(const State& s,int me){if(s.over){int diff=s.players[me].
 inline Bits canonical(Bits b){Bits best=~Bits(0);for(int flip=0;flip<2;flip++)for(int rot=0;rot<4;rot++){Bits t=0;for(int y=0;y<9;y++)for(int x=0;x<9;x++)if(b&(Bits(1)<<(y*9+x))){int xx=flip?8-x:x,yy=y;for(int r=0;r<rot;r++){int old=xx;xx=8-yy;yy=old;}t|=Bits(1)<<(yy*9+xx);}best=std::min(best,t);}return best;}
 struct Scored {Action a;double score;};
 inline std::vector<Scored> diverse(std::vector<Scored> pool,size_t cap,size_t anchors){if(pool.size()<=cap)return pool;std::vector<Scored> out;while(!pool.empty()&&out.size()<cap){size_t best=0;if(out.size()>=anchors){int far=-1;for(size_t i=0;i<pool.size();i++){int near=82;for(const auto& prior:out)near=std::min(near,count(pool[i].a.mask^prior.a.mask));if(near>far){far=near;best=i;}}}out.push_back(pool[best]);pool.erase(pool.begin()+best);}return out;}
-inline std::array<std::vector<Scored>,35> groups(const State& s,int me,Time deadline,bool learned,int& evaluations){std::array<std::vector<Scored>,35> out;for(const auto& a:aiLegal(s)){check(deadline);State next=s;apply(next,a);double score=learned&&a.type!=0?contactwide::value(next,s.current):evaluate(next,me);if(learned&&a.type!=0)evaluations++;int group=a.type==0?34:a.type==2?33:a.piece;out[group].push_back({a,score});}return out;}
+inline std::array<std::vector<Scored>,35> groups(const State& s,int me,Time deadline,bool learned,int& evaluations){std::array<std::vector<Scored>,35> out;std::optional<contactwide::CachedOpponent> model;if(learned)model.emplace(s,s.current);for(const auto& a:aiLegal(s)){check(deadline);State next=s;apply(next,a);double score=learned&&a.type!=0?model->value(next):evaluate(next,me);if(learned&&a.type!=0)evaluations++;int group=a.type==0?34:a.type==2?33:a.piece;out[group].push_back({a,score});}return out;}
 inline std::vector<Scored> unique(std::vector<Scored> g,Bits board,Time deadline,size_t max){std::stable_sort(g.begin(),g.end(),[](const auto& a,const auto& b){return a.score>b.score;});std::vector<Bits> keys;std::vector<Scored> out;for(auto& a:g){check(deadline);Bits key=canonical(board|a.a.mask);if(std::find(keys.begin(),keys.end(),key)!=keys.end())continue;keys.push_back(key);out.push_back(a);if(out.size()>=max)break;}return out;}
 inline double marketFit(const State& s,int player,Time deadline){if(s.circle.empty())return 0.;Bits board=s.players[player].board;double total=0;int n=std::min(3,int(s.circle.size()));for(int i=0;i<n;i++){int id=s.circle[(s.token+i)%s.circle.size()];auto& masks=placements()[id];if(masks.empty())continue;int fit=0;for(size_t j=0;j<masks.size();j++){fit+=!(masks[j].mask&board);if((j&255)==0)check(deadline);}total+=count(masks.front().mask)*std::sqrt(double(fit)/masks.size());}return total/n;}
 inline std::vector<Scored> children(const State& s,int me,Time deadline){int unused=0;auto gs=groups(s,me,deadline,false,unused);bool maximize=s.current==me;std::vector<Scored> first,second;for(auto& group:gs){if(group.empty())continue;std::stable_sort(group.begin(),group.end(),[&](auto& a,auto& b){return maximize?a.score>b.score:a.score<b.score;});auto selected=diverse(unique(std::move(group),s.players[s.current].board,deadline,32),2,1);if(!selected.empty())first.push_back(selected[0]);if(selected.size()>1)second.push_back(selected[1]);}std::stable_sort(second.begin(),second.end(),[&](auto& a,auto& b){return maximize?a.score>b.score:a.score<b.score;});for(auto a:second)if(first.size()<6)first.push_back(a);return first;}
@@ -109,5 +110,19 @@ inline Action rolloutAction(const State& s,int me,std::mt19937& rng,const double
   if(score>best){best=score;chosen=option.action;}}
  return chosen;
 }
-inline Result search(const State& s,int milliseconds,uint32_t seed,bool improvedRollout=false){auto start=Clock::now();Time deadline=start+std::chrono::milliseconds(milliseconds/5);std::vector<Action> roots;int evals=0;try{roots=shortlist(s,deadline,evals);}catch(const Timeout&){}if(roots.empty()){Result fallback;roots=modelCandidates(s,fallback,Time::max(),contactwide::value);evals+=fallback.modelEvaluations;}int spent=int(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-start).count());auto result=pw::search(s,std::max(1,milliseconds-spent),1000000000,seed,&roots,candidates,improvedRollout?rolloutAction:nullptr);result.elapsed=int(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-start).count());result.modelEvaluations+=evals;result.modelUsed=evals>0;return result;}
+inline Result search(const State& s,int milliseconds,uint32_t seed,bool improvedRollout=false,bool modelAtDepthOne=true){
+ auto start=Clock::now();Time deadline=start+std::chrono::milliseconds(milliseconds/5);
+ std::vector<Action> roots;int evals=0;
+ try{roots=shortlist(s,deadline,evals);}catch(const Timeout&){}
+ if(roots.empty()){
+  Result fallback;roots=modelCandidates(s,fallback,Time::max(),contactwide::value);
+  evals+=fallback.modelEvaluations;
+ }
+ int spent=int(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-start).count());
+ auto result=pw::search(s,std::max(1,milliseconds-spent),1000000000,seed,&roots,candidates,
+                        improvedRollout?rolloutAction:nullptr,modelAtDepthOne);
+ result.elapsed=int(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now()-start).count());
+ result.modelEvaluations+=evals;result.modelUsed=result.modelEvaluations>0;
+ return result;
+}
 }

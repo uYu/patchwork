@@ -9,7 +9,10 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build:wasm": "sh scripts/build-wasm.sh",
+    "build:native": "sh scripts/build-native.sh",
     "test:native": "sh scripts/test-native.sh",
+    "test:server": "npm run build:native && node --experimental-strip-types --test server/server.test.ts",
+    "serve": "node server/server.mjs",
     "simulate": "node --experimental-strip-types scripts/simulate.ts"
   },
   "dependencies": {

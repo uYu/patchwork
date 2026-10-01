@@ -165,6 +165,7 @@ export default function App() {
       state,
       difficulty: save.difficulty,
       seed: (save.seed + save.actions.length * 7919) >>> 0,
+      serverUrl: new URL("api/ai/search", document.baseURI).toString(),
     }), save.mode === "watch" && save.actions.length > 0 ? 750 : 0);
     return () => {
       cancelled = true;
@@ -692,7 +693,7 @@ export default function App() {
                             {thinking
                               ? "正在思考…"
                               : shownStats
-                                ? `${shownStats.modelUsed ? "连通模型 · 每块最多 9 候选" : shownStats.modelEvaluations ? "模型排序超时 · 启发式回退" : shownStats.backend === "wasm" ? "C++" : "本地"} · ${shownStats.simulations ? `${shownStats.simulations} 次模拟` : "启发式"}`
+                                ? `${shownStats.modelUsed ? "连通模型 · 每块最多 9 候选" : shownStats.modelEvaluations ? "模型排序超时 · 启发式回退" : shownStats.backend === "typescript" ? "本地" : "C++"} · ${shownStats.simulations ? `${shownStats.simulations} 次模拟` : "启发式"}`
                                 : "慢慢来，好作品值得等待。"}
                           </small>
                         </div>

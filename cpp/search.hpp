@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <random>
 namespace pw {
 inline double priority(const State& s,const Action& a){
@@ -32,17 +33,46 @@ inline std::vector<Action> candidates(const State& s){
  for(const auto& [v,a]:ranked){(void)v;int group=a.type==0?34:a.type==2?33:a.piece;int cap=a.type==2?8:4;if(used[group]++<cap)out.push_back(a);}
  return out;
 }
+// At the first search-tree level, use the ranker to choose placements within
+// each patch group. A cheap heuristic limits the number of model calls first.
+inline std::vector<Action> internalModelCandidates(const State& s,int& evaluations){
+ contactwide::CachedOpponent model(s,s.current);
+ std::array<std::vector<std::pair<double,Action>>,35> groups;
+ for(const auto& a:aiLegal(s)){
+  const int group=a.type==0?34:a.type==2?33:a.piece;
+  groups[group].push_back({priority(s,a),a});
+ }
+ std::vector<Action> chosen;
+ for(auto& group:groups){
+  std::stable_sort(group.begin(),group.end(),[](const auto& x,const auto& y){return x.first>y.first;});
+  if(group.size()>12)group.resize(12);
+  std::vector<std::pair<float,Action>> ranked;
+  for(const auto& item:group){
+   if(item.second.type==0){chosen.push_back(item.second);continue;}
+   State next=s;apply(next,item.second);
+   ranked.push_back({model.value(next),item.second});
+   evaluations++;
+  }
+  std::stable_sort(ranked.begin(),ranked.end(),[](const auto& x,const auto& y){return x.first>y.first;});
+  const int cap=!ranked.empty()&&ranked[0].second.type==2?8:4;
+  for(int i=0;i<std::min(cap,int(ranked.size()));i++)chosen.push_back(ranked[i].second);
+ }
+ std::stable_sort(chosen.begin(),chosen.end(),[&](const auto& x,const auto& y){return priority(s,x)>priority(s,y);});
+ return chosen;
+}
 using CandidatePolicy=std::vector<Action>(*)(const State&);
 using RolloutPolicy=Action(*)(const State&,int,std::mt19937&,const double*);
-struct Node {State state;std::vector<Action> untried;std::vector<std::unique_ptr<Node>> children;Action action;int visits=0;double value=0;Node(State s,Action a={},CandidatePolicy policy=candidates):state(std::move(s)),untried(policy(state)),action(a){std::reverse(untried.begin(),untried.end());}};
+struct Node {State state;std::vector<Action> untried;std::vector<std::unique_ptr<Node>> children;Action action;int visits=0;double value=0;int depth=0;Node(State s,Action a={},CandidatePolicy policy=candidates,int d=0,int* internalEvals=nullptr):state(std::move(s)),untried(internalEvals&&d==1?internalModelCandidates(state,*internalEvals):policy(state)),action(a),depth(d){std::reverse(untried.begin(),untried.end());}};
 struct Candidate { Action action; int visits=0; double value=0; };
 struct Result{std::vector<Candidate> candidates; Action action;int simulations=0;int elapsed=0;int modelEvaluations=0;int modelUsed=0;int rootCandidates=0;};
 inline std::vector<Action> modelCandidates(const State& s,Result& result,std::chrono::steady_clock::time_point deadline,float(*modelValue)(const State&,int)=contactwide::value){
+ std::optional<contactwide::CachedOpponent> model;
+ if(modelValue==contactwide::value)model.emplace(s,s.current);
  std::array<std::vector<std::pair<float,Action>>,35> groups;
  for(const auto& a:aiLegal(s)){
   if(std::chrono::steady_clock::now()>=deadline)return {}; // Discard incomplete rankings.
   float score=0;
-  if(a.type!=0){State next=s;apply(next,a);score=modelValue(next,s.current);result.modelEvaluations++;}
+  if(a.type!=0){State next=s;apply(next,a);score=model?model->value(next):modelValue(next,s.current);result.modelEvaluations++;}
   const int group=a.type==0?34:a.type==2?33:a.piece;
   auto& best=groups[group];auto at=std::find_if(best.begin(),best.end(),[&](const auto& p){return score>p.first;});
   best.insert(at,{score,a});if(best.size()>8)best.pop_back();
@@ -51,8 +81,9 @@ inline std::vector<Action> modelCandidates(const State& s,Result& result,std::ch
  std::stable_sort(out.begin(),out.end(),[&](const auto& a,const auto& b){return priority(s,a)>priority(s,b);});
  result.modelUsed=result.modelEvaluations>0;return out;
 }
-inline Result search(const State& s,int milliseconds,int limit,uint32_t seed,const std::vector<Action>* roots=nullptr,CandidatePolicy policy=candidates,RolloutPolicy rollout=nullptr){
+inline Result search(const State& s,int milliseconds,int limit,uint32_t seed,const std::vector<Action>* roots=nullptr,CandidatePolicy policy=candidates,RolloutPolicy rollout=nullptr,bool modelAtDepthOne=false){
  const auto start=std::chrono::steady_clock::now();auto elapsed=[&](){return int(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-start).count());};
+ int internalEvals=0;int* internalCounter=modelAtDepthOne?&internalEvals:nullptr;
  Node root(s,{},policy);if(root.untried.empty())throw std::runtime_error("No legal action");
  Result result;result.action=root.untried.back();if(limit==0){for(auto it=root.untried.rbegin();it!=root.untried.rend();++it)result.candidates.push_back({*it});result.rootCandidates=int(result.candidates.size());result.elapsed=elapsed();return result;}
  auto ranked=roots?*roots:modelCandidates(s,result,milliseconds>0?start+std::chrono::milliseconds(milliseconds/5):std::chrono::steady_clock::time_point::max());
@@ -68,7 +99,7 @@ inline Result search(const State& s,int milliseconds,int limit,uint32_t seed,con
    node=chosen;path.push_back(node);
   }
   if(!node->state.over&&!node->untried.empty()){
-   Action a=node->untried.back();node->untried.pop_back();State next=node->state;apply(next,a);node->children.push_back(std::make_unique<Node>(std::move(next),a,policy));node=node->children.back().get();path.push_back(node);
+   Action a=node->untried.back();node->untried.pop_back();State next=node->state;apply(next,a);node->children.push_back(std::make_unique<Node>(std::move(next),a,policy,node->depth+1,internalCounter));node=node->children.back().get();path.push_back(node);
   }
   State sim=node->state;int steps=0;
   double exponents[2]={};if(rollout){exponents[0]=std::uniform_real_distribution<double>(.7,1.1)(rng);exponents[1]=std::uniform_real_distribution<double>(.7,1.1)(rng);}
@@ -81,6 +112,7 @@ inline Result search(const State& s,int milliseconds,int limit,uint32_t seed,con
   const auto& a=candidate.action;const auto& b=child->action;
   if(a.type==b.type&&a.piece==b.piece&&a.orientation==b.orientation&&a.x==b.x&&a.y==b.y){candidate.visits=child->visits;candidate.value=child->value;break;}
  }
+ result.modelEvaluations+=internalEvals;result.modelUsed=result.modelEvaluations>0;
  result.elapsed=elapsed();return result;
 }
 }

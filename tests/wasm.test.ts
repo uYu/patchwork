@@ -103,7 +103,7 @@ test("normal and advanced AI return legal actions; fixed simulation count is rep
   assert(isLegal(s, result.action));
   assert(result.simulations > 0);
   assert(result.elapsed >= 4000 && result.elapsed < 7000);
-  assert.equal(result.strategy, "advanced");
+  assert.equal(result.strategy, "advanced2");
   assert(result.modelEvaluations > 0);
   assert(result.candidates?.some(c => key(c.action) === key(result.action)));
   const results = [];

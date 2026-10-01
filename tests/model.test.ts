@@ -46,3 +46,11 @@ test('short advanced search catches shortlist timeout and returns a legal action
  const out=m.HEAP32.slice(m._pw_output()/4,m._pw_output()/4+5);
  assert(isLegal(s,decodeAction(out)));
 });
+test('advanced search uses the internal model and returns a legal action',async()=>{
+ const s=newGame(55),m=await wasmModule();
+ m.HEAP32.set(encode(s),m._pw_input()/4);
+ assert.equal(m._pw_search(250,-1,1234),1);
+ const out=m.HEAP32.slice(m._pw_output()/4,m._pw_output()/4+10);
+ assert(isLegal(s,decodeAction(out)));
+ assert(out[7]>0);
+});

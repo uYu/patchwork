@@ -1,6 +1,11 @@
 services:
   patchwork:
-    build: .
+    build:
+      context: .
+      args:
+        AI_CXXFLAGS: ${AI_CXXFLAGS:--O3}
     ports:
       - "${PATCHWORK_PORT:-8205}:8080"
+    environment:
+      PATCHWORK_MAX_SEARCHES: "${PATCHWORK_MAX_SEARCHES:-4}"
     restart: unless-stopped
